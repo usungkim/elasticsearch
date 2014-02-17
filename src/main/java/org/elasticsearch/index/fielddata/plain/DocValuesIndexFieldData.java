@@ -27,6 +27,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
+import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.FieldMapper.Names;
 import org.elasticsearch.index.mapper.MapperService;
@@ -80,7 +81,8 @@ public abstract class DocValuesIndexFieldData {
 
         @Override
         public IndexFieldData<?> build(Index index, Settings indexSettings, FieldMapper<?> mapper, IndexFieldDataCache cache,
-                                       CircuitBreakerService breakerService, MapperService mapperService) {
+                                       CircuitBreakerService breakerService, MapperService mapperService,
+                                       GlobalOrdinalsBuilder globalOrdinalBuilder) {
             // Ignore Circuit Breaker
             final FieldMapper.Names fieldNames = mapper.names();
             final Settings fdSettings = mapper.fieldDataType().getSettings();
@@ -98,7 +100,7 @@ public abstract class DocValuesIndexFieldData {
             } else if (numericType != null) {
                 return new BinaryDVNumericIndexFieldData(index, fieldNames, numericType);
             } else {
-                return new SortedSetDVBytesIndexFieldData(index, fieldNames);
+                return new SortedSetDVBytesIndexFieldData(index, cache, indexSettings, fieldNames, globalOrdinalBuilder);
             }
         }
 

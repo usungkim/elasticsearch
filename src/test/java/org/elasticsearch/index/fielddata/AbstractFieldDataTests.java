@@ -39,6 +39,7 @@ public abstract class AbstractFieldDataTests extends ElasticsearchTestCase {
     protected IndexFieldDataService ifdService;
     protected IndexWriter writer;
     protected AtomicReaderContext readerContext;
+    protected IndexReader topLevelReader;
 
     protected abstract FieldDataType getFieldDataType();
 
@@ -90,7 +91,7 @@ public abstract class AbstractFieldDataTests extends ElasticsearchTestCase {
         if (readerContext != null) {
             readerContext.reader().close();
         }
-        AtomicReader reader = SlowCompositeReaderWrapper.wrap(DirectoryReader.open(writer, true));
+        AtomicReader reader = SlowCompositeReaderWrapper.wrap(topLevelReader = DirectoryReader.open(writer, true));
         readerContext = reader.getContext();
         return readerContext;
     }

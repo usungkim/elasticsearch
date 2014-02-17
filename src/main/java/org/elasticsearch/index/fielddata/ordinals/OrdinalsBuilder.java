@@ -309,6 +309,12 @@ public final class OrdinalsBuilder implements Closeable {
         return ++currentOrd;
     }
 
+    // TODO: support out of order ordinals?
+    public void setOrdinal(long currentOrdinal) {
+        assert currentOrdinal >= currentOrd;
+        currentOrd = currentOrdinal;
+    }
+
     /**
      * Retruns the current ordinal or <tt>0</tt> if this build has not been advanced via
      * {@link #nextOrdinal()}.

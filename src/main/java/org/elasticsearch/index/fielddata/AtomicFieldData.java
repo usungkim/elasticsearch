@@ -22,7 +22,7 @@ package org.elasticsearch.index.fielddata;
 /**
  * The thread safe {@link org.apache.lucene.index.AtomicReader} level cache of the data.
  */
-public interface AtomicFieldData<Script extends ScriptDocValues> {
+public interface AtomicFieldData<Script extends ScriptDocValues> extends RamUsage {
 
     /**
      * If this method returns false, this means that no document has multiple values. However this method may return true even if all
@@ -45,11 +45,6 @@ public interface AtomicFieldData<Script extends ScriptDocValues> {
      * An upper limit of the number of unique values in this atomic field data.
      */
     long getNumberUniqueValues();
-
-    /**
-     * Size (in bytes) of memory used by this field data.
-     */
-    long getMemorySizeInBytes();
 
     /**
      * Use a non thread safe (lightweight) view of the values as bytes.

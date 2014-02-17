@@ -30,6 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexComponent;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
+import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.settings.IndexSettings;
@@ -173,7 +174,7 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
     interface Builder {
 
         IndexFieldData build(Index index, @IndexSettings Settings indexSettings, FieldMapper<?> mapper, IndexFieldDataCache cache,
-                             CircuitBreakerService breakerService, MapperService mapperService);
+                             CircuitBreakerService breakerService, MapperService mapperService, GlobalOrdinalsBuilder globalOrdinalBuilder);
     }
 
     public interface WithOrdinals<FD extends AtomicFieldData.WithOrdinals> extends IndexFieldData<FD> {
@@ -187,6 +188,11 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
          * Loads directly the atomic field data for the reader, ignoring any caching involved.
          */
         FD loadDirect(AtomicReaderContext context) throws Exception;
+
+        WithOrdinals loadGlobal(IndexReader indexReader);
+
+        WithOrdinals localGlobalDirect(IndexReader indexReader) throws Exception;
+
     }
 
 }

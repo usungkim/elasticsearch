@@ -31,6 +31,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.fielddata.ordinals.DisabledGlobalOrdinals;
+import org.elasticsearch.index.fielddata.ordinals.DynamicGlobalOrdinals;
+import org.elasticsearch.index.fielddata.ordinals.FixedGlobalOrdinals;
+import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.fielddata.plain.ParentChildIndexFieldData;
 import org.elasticsearch.index.fielddata.plain.*;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -238,7 +242,21 @@ public class IndexFieldDataService extends AbstractIndexComponent {
                         fieldDataCaches.put(fieldNames.indexName(), cache);
                     }
 
-                    fieldData = builder.build(index, indexSettings, mapper, cache, circuitBreakerService, indexService.mapperService());
+                    GlobalOrdinalsBuilder globalOrdinalBuilder;
+                    switch (type.getGlobalOrdinals()) {
+                        case DISABLED:
+                            globalOrdinalBuilder = new DisabledGlobalOrdinals();
+                            break;
+                        case FIXED:
+                            globalOrdinalBuilder = new FixedGlobalOrdinals();
+                            break;
+                        case DYNAMIC:
+                            globalOrdinalBuilder = new DynamicGlobalOrdinals();
+                            break;
+                        default:
+                            throw new ElasticsearchIllegalArgumentException("Unknown global ordinals type: " + type.getGlobalOrdinals());
+                    }
+                    fieldData = builder.build(index, indexSettings, mapper, cache, circuitBreakerService, indexService.mapperService(), globalOrdinalBuilder);
                     loadedFieldData.put(fieldNames.indexName(), fieldData);
                 }
             }

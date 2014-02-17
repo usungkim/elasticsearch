@@ -157,6 +157,47 @@ public interface FieldMapper<T> extends Mapper {
 
     }
 
+    public static enum GlobalOrdinals {
+        DISABLED {
+            @Override
+            public String toString() {
+                return DISABLED_VALUE;
+            }
+        },
+        FIXED {
+            @Override
+            public String toString() {
+                return DYNAMIC_VALUE;
+            }
+        },
+        DYNAMIC {
+            @Override
+            public String toString() {
+                return FIXED_VALUE;
+            }
+        };
+
+        public static final String KEY = "global_ordinals";
+        public static final String DISABLED_VALUE = "disabled";
+        public static final String FIXED_VALUE = "fixed";
+        public static final String DYNAMIC_VALUE = "dynamic";
+
+        public static GlobalOrdinals parse(String globalOrdinals, GlobalOrdinals defaultValue) {
+            if (Strings.isNullOrEmpty(globalOrdinals)) {
+                return defaultValue;
+            } else if (DISABLED_VALUE.equalsIgnoreCase(globalOrdinals)) {
+                return DISABLED;
+            } else if (FIXED_VALUE.equalsIgnoreCase(globalOrdinals)) {
+                return FIXED;
+            } else if (DYNAMIC_VALUE.equalsIgnoreCase(globalOrdinals)) {
+                return DYNAMIC;
+            } else {
+                throw new MapperParsingException("Unknown [" + KEY + "] value: [" + globalOrdinals + "]");
+            }
+        }
+
+    }
+
     Names names();
 
     FieldType fieldType();

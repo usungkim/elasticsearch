@@ -28,6 +28,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.RamAccountingTermsEnum;
 import org.elasticsearch.index.fielddata.*;
+import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.fielddata.ordinals.Ordinals;
 import org.elasticsearch.index.fielddata.ordinals.OrdinalsBuilder;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -47,14 +48,16 @@ public class PagedBytesIndexFieldData extends AbstractBytesIndexFieldData<PagedB
 
         @Override
         public IndexFieldData<PagedBytesAtomicFieldData> build(Index index, @IndexSettings Settings indexSettings, FieldMapper<?> mapper,
-                                                               IndexFieldDataCache cache, CircuitBreakerService breakerService, MapperService mapperService) {
-            return new PagedBytesIndexFieldData(index, indexSettings, mapper.names(), mapper.fieldDataType(), cache, breakerService);
+                                                               IndexFieldDataCache cache, CircuitBreakerService breakerService, MapperService mapperService,
+                                                               GlobalOrdinalsBuilder globalOrdinalBuilder) {
+            return new PagedBytesIndexFieldData(index, indexSettings, mapper.names(), mapper.fieldDataType(), cache, breakerService, globalOrdinalBuilder);
         }
     }
 
     public PagedBytesIndexFieldData(Index index, @IndexSettings Settings indexSettings, FieldMapper.Names fieldNames,
-                                    FieldDataType fieldDataType, IndexFieldDataCache cache, CircuitBreakerService breakerService) {
-        super(index, indexSettings, fieldNames, fieldDataType, cache);
+                                    FieldDataType fieldDataType, IndexFieldDataCache cache, CircuitBreakerService breakerService,
+                                    GlobalOrdinalsBuilder globalOrdinalsBuilder) {
+        super(index, indexSettings, fieldNames, fieldDataType, cache, globalOrdinalsBuilder);
         this.breakerService = breakerService;
     }
 
