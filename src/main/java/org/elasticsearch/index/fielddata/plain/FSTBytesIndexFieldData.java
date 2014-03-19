@@ -56,7 +56,7 @@ public class FSTBytesIndexFieldData extends AbstractBytesIndexFieldData<FSTBytes
 
     FSTBytesIndexFieldData(Index index, @IndexSettings Settings indexSettings, FieldMapper.Names fieldNames, FieldDataType fieldDataType,
                            IndexFieldDataCache cache, CircuitBreakerService breakerService, GlobalOrdinalsBuilder globalOrdinalsBuilder) {
-        super(index, indexSettings, fieldNames, fieldDataType, cache, globalOrdinalsBuilder);
+        super(index, indexSettings, fieldNames, fieldDataType, cache, globalOrdinalsBuilder, breakerService);
         this.breakerService = breakerService;
     }
 

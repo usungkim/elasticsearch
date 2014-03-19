@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.index.fielddata.ordinals;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.util.BytesRef;
@@ -68,6 +69,11 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
     }
 
     @Override
+    public boolean hasGlobalOrdinals() {
+        return true;
+    }
+
+    @Override
     public FieldMapper.Names getFieldNames() {
         return fieldNames;
     }
@@ -92,6 +98,13 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
 
     }
 
+    protected abstract int getReaderIndex(long globalOrdinal);
+
+    protected abstract long getSegmentOrdinal(long globalOrdinal);
+
+    protected abstract BytesValues.WithOrdinals createSegmentBytesValues(int readerIndex);
+
+    // TODO: should be removed...
     protected abstract BytesRef getValueByGlobalOrd(long globalOrd);
 
     protected abstract long getGlobalOrd(int readerIndex, long segmentOrd);
@@ -111,11 +124,28 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
             BytesValues.WithOrdinals values = afd.getBytesValues(false);
             Ordinals.Docs wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(values.ordinals());
             return new BytesValues.WithOrdinals(wrapper) {
+
+                int readerIndex;
+                final IntObjectOpenHashMap<BytesValues.WithOrdinals> bytesValuesCache = new IntObjectOpenHashMap<>();
+
                 @Override
                 public BytesRef getValueByOrd(long globalOrd) {
-                    return getValueByGlobalOrd(globalOrd);
+                    final long segmentOrd = getSegmentOrdinal(globalOrd);
+                    readerIndex = getReaderIndex(globalOrd);
+                    if (bytesValuesCache.containsKey(readerIndex)) {
+                        return bytesValuesCache.lget().getValueByOrd(segmentOrd);
+                    } else {
+                        BytesValues.WithOrdinals k = createSegmentBytesValues(readerIndex);
+                        bytesValuesCache.put(readerIndex, k);
+                        return k.getValueByOrd(segmentOrd);
+                    }
+//                    return getValueByGlobalOrd(globalOrd);
                 }
 
+                @Override
+                public BytesRef copyShared() {
+                    return bytesValuesCache.get(readerIndex).copyShared();
+                }
             };
         }
 

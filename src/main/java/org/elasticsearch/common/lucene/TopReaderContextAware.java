@@ -16,22 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.elasticsearch.common.lucene;
 
-package org.elasticsearch.index.fielddata.ordinals;
-
-import org.apache.lucene.index.IndexReader;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
-
-import java.io.IOException;
+import org.apache.lucene.index.IndexReaderContext;
 
 /**
+ *
  */
-public class DynamicGlobalOrdinals implements GlobalOrdinalsBuilder {
+public interface TopReaderContextAware {
 
-    @Override
-    public IndexFieldData.WithOrdinals build(IndexReader indexReader, IndexFieldData.WithOrdinals indexFieldData, Settings settings, CircuitBreakerService breakerService) throws IOException {
-        return null;
-    }
+    public void setNextReader(IndexReaderContext reader);
 }

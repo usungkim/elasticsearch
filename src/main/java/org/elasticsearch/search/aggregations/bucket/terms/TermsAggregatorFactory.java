@@ -61,6 +61,19 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
                 return new StringTermsAggregator.WithOrdinals(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
             }
 
+        },
+        GLOBAL_ORDINALS(new ParseField("global_ordinals")) {
+
+            @Override
+            Aggregator create(String name, AggregatorFactories factories, ValuesSource valuesSource, long estimatedBucketCount,
+                              InternalOrder order, int requiredSize, int shardSize, long minDocCount, IncludeExclude includeExclude,
+                              AggregationContext aggregationContext, Aggregator parent) {
+                if (includeExclude != null) {
+                    throw new ElasticsearchIllegalArgumentException("The `" + this + "` execution mode cannot filter terms.");
+                }
+                return new StringTermsAggregator.WithGlobalOrdinals(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
+            }
+
         };
 
         public static ExecutionMode fromString(String value) {

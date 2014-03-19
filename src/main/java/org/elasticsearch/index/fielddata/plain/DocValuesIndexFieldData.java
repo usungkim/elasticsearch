@@ -100,7 +100,7 @@ public abstract class DocValuesIndexFieldData {
             } else if (numericType != null) {
                 return new BinaryDVNumericIndexFieldData(index, fieldNames, numericType);
             } else {
-                return new SortedSetDVBytesIndexFieldData(index, cache, indexSettings, fieldNames, globalOrdinalBuilder);
+                return new SortedSetDVBytesIndexFieldData(index, cache, indexSettings, fieldNames, globalOrdinalBuilder,breakerService);
             }
         }
 

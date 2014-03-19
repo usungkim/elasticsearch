@@ -28,20 +28,24 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
+import org.elasticsearch.index.fielddata.ordinals.DisabledGlobalOrdinals;
 import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.mapper.FieldMapper.Names;
+import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
 
 public class SortedSetDVBytesIndexFieldData extends DocValuesIndexFieldData implements IndexFieldData.WithOrdinals<SortedSetDVBytesAtomicFieldData> {
 
     private final Settings indexSettings;
     private final IndexFieldDataCache cache;
     private final GlobalOrdinalsBuilder globalOrdinalsBuilder;
+    private final CircuitBreakerService breakerService;
 
-    public SortedSetDVBytesIndexFieldData(Index index, IndexFieldDataCache cache, Settings indexSettings, Names fieldNames, GlobalOrdinalsBuilder globalOrdinalBuilder) {
+    public SortedSetDVBytesIndexFieldData(Index index, IndexFieldDataCache cache, Settings indexSettings, Names fieldNames, GlobalOrdinalsBuilder globalOrdinalBuilder, CircuitBreakerService breakerService) {
         super(index, fieldNames);
         this.indexSettings = indexSettings;
         this.cache = cache;
         this.globalOrdinalsBuilder = globalOrdinalBuilder;
+        this.breakerService = breakerService;
     }
 
     @Override
@@ -64,6 +68,11 @@ public class SortedSetDVBytesIndexFieldData extends DocValuesIndexFieldData impl
     }
 
     @Override
+    public boolean hasGlobalOrdinals() {
+        return !(globalOrdinalsBuilder instanceof DisabledGlobalOrdinals);
+    }
+
+    @Override
     public WithOrdinals loadGlobal(IndexReader indexReader) {
         try {
             return cache.load(indexReader, this);
@@ -78,6 +87,6 @@ public class SortedSetDVBytesIndexFieldData extends DocValuesIndexFieldData impl
 
     @Override
     public WithOrdinals localGlobalDirect(IndexReader indexReader) throws Exception {
-        return globalOrdinalsBuilder.build(indexReader, this, indexSettings);
+        return globalOrdinalsBuilder.build(indexReader, this, indexSettings, breakerService);
     }
 }

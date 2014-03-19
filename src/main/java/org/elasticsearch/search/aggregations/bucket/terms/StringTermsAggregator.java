@@ -27,14 +27,15 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.Iterators2;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.BytesRefHash;
 import org.elasticsearch.common.util.LongArray;
+import org.elasticsearch.common.util.LongHash;
 import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.ordinals.Ordinals;
 import org.elasticsearch.search.aggregations.Aggregator;
 import org.elasticsearch.search.aggregations.AggregatorFactories;
 import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.bucket.BucketsAggregator;
-import org.elasticsearch.common.util.BytesRefHash;
 import org.elasticsearch.search.aggregations.bucket.terms.support.BucketPriorityQueue;
 import org.elasticsearch.search.aggregations.bucket.terms.support.IncludeExclude;
 import org.elasticsearch.search.aggregations.support.AggregationContext;
@@ -50,7 +51,7 @@ import java.util.*;
 public class StringTermsAggregator extends BucketsAggregator {
 
     private final ValuesSource valuesSource;
-    private final InternalOrder order;
+    protected final InternalOrder order;
     protected final int requiredSize;
     protected final int shardSize;
     protected final long minDocCount;
@@ -69,7 +70,12 @@ public class StringTermsAggregator extends BucketsAggregator {
         this.shardSize = shardSize;
         this.minDocCount = minDocCount;
         this.includeExclude = includeExclude;
-        bucketOrds = new BytesRefHash(estimatedBucketCount, aggregationContext.bigArrays());
+        // A bit hacky...
+        if (!(this instanceof WithGlobalOrdinals)) {
+            bucketOrds = new BytesRefHash(estimatedBucketCount, aggregationContext.bigArrays());
+        } else {
+            bucketOrds = null;
+        }
     }
 
     @Override
@@ -310,6 +316,83 @@ public class StringTermsAggregator extends BucketsAggregator {
         @Override
         public void doRelease() {
             Releasables.release(bucketOrds, ordinalToBucket);
+        }
+    }
+
+    public static class WithGlobalOrdinals extends StringTermsAggregator {
+
+        // TODO: Figure out if OpenBitSet is a better candidate for storing the matched global ordinals
+        // We can then directly push down the global ordinals as bucket ord, but the size of OBS would be big.
+        private final LongHash bucketOrds;
+        private final BytesValuesSource.WithOrdinals valuesSource;
+        private BytesValues.WithOrdinals globalValues;
+        private Ordinals.Docs globalOrdinals;
+
+        public WithGlobalOrdinals(String name, AggregatorFactories factories, BytesValuesSource.WithOrdinals valuesSource, long esitmatedBucketCount,
+                            InternalOrder order, int requiredSize, int shardSize, long minDocCount, AggregationContext aggregationContext, Aggregator parent) {
+            super(name, factories, valuesSource, esitmatedBucketCount, order, requiredSize, shardSize, minDocCount, null, aggregationContext, parent);
+            this.valuesSource = valuesSource;
+            this.bucketOrds = new LongHash(estimatedBucketCount, aggregationContext.bigArrays());
+            assert valuesSource.hasGlobalOrdinals();
+        }
+
+        @Override
+        public void collect(int doc, long owningBucketOrdinal) throws IOException {
+            final int numValues = globalOrdinals.setDocument(doc);
+            for (int i = 0; i < numValues; i++) {
+                final long globalOrd = globalOrdinals.nextOrd();
+                long bucketOrd = bucketOrds.add(globalOrd);
+                if (bucketOrd < 0) {
+                    bucketOrd = -1 - bucketOrd;
+                }
+
+                collectBucket(doc, bucketOrd);
+            }
+        }
+
+        @Override
+        public void setNextReader(AtomicReaderContext reader) {
+            globalValues = valuesSource.globalBytesValues();
+            globalOrdinals = globalValues.ordinals();
+        }
+
+        @Override
+        public StringTerms buildAggregation(long owningBucketOrdinal) {
+            final int size = (int) Math.min(bucketOrds.size(), shardSize);
+
+            BucketPriorityQueue ordered = new BucketPriorityQueue(size, order.comparator(this));
+            StringTerms.Bucket spare = null;
+            for (int i = 0; i < bucketOrds.capacity(); i++) {
+                long bucketOrd = bucketOrds.id(i);
+                if (bucketOrd < 0) {
+                    continue;
+                }
+                if (spare == null) {
+                    spare = new StringTerms.Bucket(new BytesRef(), 0, null);
+                }
+                long globalOrdinal = bucketOrds.key(i);
+                globalValues.getValueByOrd(globalOrdinal);
+                spare.termBytes = globalValues.copyShared();
+                spare.docCount = bucketDocCount(bucketOrd);
+                spare.bucketOrd = bucketOrd;
+                spare = (StringTerms.Bucket) ordered.insertWithOverflow(spare);
+            }
+
+            final InternalTerms.Bucket[] list = new InternalTerms.Bucket[ordered.size()];
+            for (int i = ordered.size() - 1; i >= 0; --i) {
+                final StringTerms.Bucket bucket = (StringTerms.Bucket) ordered.pop();
+                // TODO - verify: The 'bucket.termBytes' is a copy (shallow or deep) from field data, so we don't need to do a deep copy again.
+//                bucket.termBytes = BytesRef.deepCopyOf(bucket.termBytes);
+                bucket.aggregations = bucketAggregations(bucket.bucketOrd);
+                list[i] = bucket;
+            }
+
+            return new StringTerms(name, order, requiredSize, minDocCount, Arrays.asList(list));
+        }
+
+        @Override
+        public void doRelease() {
+            Releasables.release(bucketOrds);
         }
     }
 

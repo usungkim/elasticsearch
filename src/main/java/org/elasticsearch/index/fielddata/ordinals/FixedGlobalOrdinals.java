@@ -32,6 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ import java.util.List;
 public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
 
     @Override
-    public IndexFieldData.WithOrdinals build(final IndexReader indexReader, IndexFieldData.WithOrdinals indexFieldData, Settings settings) throws IOException {
+    public IndexFieldData.WithOrdinals build(final IndexReader indexReader, IndexFieldData.WithOrdinals indexFieldData, Settings settings, CircuitBreakerService breakerService) throws IOException {
         final float acceptableOverheadRatio = settings.getAsFloat("acceptable_overhead_ratio", PackedInts.FASTEST);
         final AppendingPackedLongBuffer globalOrdToFirstSegment = new AppendingPackedLongBuffer(acceptableOverheadRatio);
         globalOrdToFirstSegment.add(0);
@@ -77,6 +78,7 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
             memorySizeInBytesCounter += segmentOrdToGlobalOrd.ramBytesUsed();
         }
         final long memorySizeInBytes = memorySizeInBytesCounter;
+        breakerService.getBreaker().addWithoutBreaking(memorySizeInBytes);
 
         return new BaseGlobalIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals) {
 
@@ -88,6 +90,23 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
                 AtomicFieldData.WithOrdinals afd = withOrdinals[readerIndex];
                 long segmentOrd =  globalOrdToFirstSegmentOrd.get(globalOrdinal);
                 return afd.getBytesValues(false).getValueByOrd(segmentOrd);
+            }
+
+            @Override
+            protected int getReaderIndex(long globalOrdinal) {
+                assert globalOrdinal != Ordinals.MISSING_ORDINAL;
+                return (int) globalOrdToFirstSegment.get(globalOrdinal);
+            }
+
+            @Override
+            protected long getSegmentOrdinal(long globalOrdinal) {
+                assert globalOrdinal != Ordinals.MISSING_ORDINAL;
+                return globalOrdToFirstSegmentOrd.get(globalOrdinal);
+            }
+
+            @Override
+            protected BytesValues.WithOrdinals createSegmentBytesValues(int readerIndex) {
+                return withOrdinals[readerIndex].getBytesValues(false);
             }
 
             @Override

@@ -42,7 +42,6 @@ import java.io.IOException;
  */
 public class PagedBytesIndexFieldData extends AbstractBytesIndexFieldData<PagedBytesAtomicFieldData> {
 
-    private final CircuitBreakerService breakerService;
 
     public static class Builder implements IndexFieldData.Builder {
 
@@ -57,8 +56,7 @@ public class PagedBytesIndexFieldData extends AbstractBytesIndexFieldData<PagedB
     public PagedBytesIndexFieldData(Index index, @IndexSettings Settings indexSettings, FieldMapper.Names fieldNames,
                                     FieldDataType fieldDataType, IndexFieldDataCache cache, CircuitBreakerService breakerService,
                                     GlobalOrdinalsBuilder globalOrdinalsBuilder) {
-        super(index, indexSettings, fieldNames, fieldDataType, cache, globalOrdinalsBuilder);
-        this.breakerService = breakerService;
+        super(index, indexSettings, fieldNames, fieldDataType, cache, globalOrdinalsBuilder, breakerService);
     }
 
     @Override

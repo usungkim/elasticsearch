@@ -57,6 +57,14 @@ public class BytesValuesSource implements ValuesSource {
             return source.bytesValues();
         }
 
+        public boolean hasGlobalOrdinals() {
+            return source.hasGlobalOrdinals();
+        }
+
+        public BytesValues.WithOrdinals globalBytesValues() {
+            return source.globalBytesValues();
+        }
+
     }
 
 }

@@ -65,7 +65,11 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
 
     @Before
     public void init() throws Exception {
-        createIndex("idx");
+        prepareCreate("idx")
+                .addMapping("type", jsonBuilder().startObject().startObject("type").startObject("properties")
+                            .startObject(SINGLE_VALUED_FIELD_NAME).field("type", "string").startObject("fielddata").field("global_ordinals", "fixed").endObject().endObject()
+                        .endObject().endObject().endObject())
+                .get();
         IndexRequestBuilder[] lowCardBuilders = new IndexRequestBuilder[5]; // TODO randomize the size?
         for (int i = 0; i < lowCardBuilders.length; i++) {
             lowCardBuilders[i] = client().prepareIndex("idx", "type").setSource(jsonBuilder()
@@ -120,6 +124,29 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
         SearchResponse response = client().prepareSearch("idx").setTypes("type")
                 .addAggregation(terms("terms")
                         .executionHint(randomExecutionHint())
+                        .field(SINGLE_VALUED_FIELD_NAME))
+                .execute().actionGet();
+
+        assertSearchResponse(response);
+
+        Terms terms = response.getAggregations().get("terms");
+        assertThat(terms, notNullValue());
+        assertThat(terms.getName(), equalTo("terms"));
+        assertThat(terms.getBuckets().size(), equalTo(5));
+
+        for (int i = 0; i < 5; i++) {
+            Terms.Bucket bucket = terms.getBucketByKey("val" + i);
+            assertThat(bucket, notNullValue());
+            assertThat(key(bucket), equalTo("val" + i));
+            assertThat(bucket.getDocCount(), equalTo(1l));
+        }
+    }
+
+    @Test
+    public void singleValueField_withGlobalOrdinals() throws Exception {
+        SearchResponse response = client().prepareSearch("idx").setTypes("type")
+                .addAggregation(terms("terms")
+                        .executionHint(TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS)
                         .field(SINGLE_VALUED_FIELD_NAME))
                 .execute().actionGet();
 

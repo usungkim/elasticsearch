@@ -29,6 +29,7 @@ import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
 
 import java.io.IOException;
 
@@ -37,7 +38,7 @@ import java.io.IOException;
 public class DisabledGlobalOrdinals implements GlobalOrdinalsBuilder {
 
     @Override
-    public IndexFieldData.WithOrdinals build(IndexReader indexReader, final IndexFieldData.WithOrdinals indexFieldData, Settings settings) throws IOException {
+    public IndexFieldData.WithOrdinals build(IndexReader indexReader, final IndexFieldData.WithOrdinals indexFieldData, Settings settings, CircuitBreakerService breakerService) throws IOException {
         return new IndexFieldData.WithOrdinals() {
             @Override
             public AtomicFieldData.WithOrdinals load(AtomicReaderContext context) {
@@ -57,6 +58,11 @@ public class DisabledGlobalOrdinals implements GlobalOrdinalsBuilder {
             @Override
             public WithOrdinals localGlobalDirect(IndexReader indexReader) throws Exception {
                 return this;
+            }
+
+            @Override
+            public boolean hasGlobalOrdinals() {
+                return false;
             }
 
             @Override
