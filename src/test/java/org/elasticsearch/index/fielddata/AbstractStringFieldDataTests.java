@@ -42,7 +42,8 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
-import org.elasticsearch.index.fielddata.ordinals.BaseGlobalIndexFieldData;
+import org.elasticsearch.index.fielddata.ordinals.GlobalIndexFieldData;
+import org.elasticsearch.index.fielddata.ordinals.GlobalIndexFieldData;
 import org.elasticsearch.index.fielddata.ordinals.Ordinals;
 import org.elasticsearch.index.search.nested.NestedFieldComparatorSource;
 import org.junit.Test;
@@ -441,7 +442,7 @@ public abstract class AbstractStringFieldDataTests extends AbstractFieldDataImpl
         assertThat(topLevelReader.leaves().size(), equalTo(3));
 
         // First segment
-        assertThat(globalOrdinals, instanceOf(BaseGlobalIndexFieldData.class));
+        assertThat(globalOrdinals, instanceOf(GlobalIndexFieldData.class));
         AtomicFieldData.WithOrdinals afd = globalOrdinals.load(topLevelReader.leaves().get(0));
         assertThat(afd.getNumDocs(), equalTo(3));
         BytesValues.WithOrdinals values = afd.getBytesValues(randomBoolean());

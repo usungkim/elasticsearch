@@ -28,7 +28,8 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.SegmentReader;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.SegmentReaderUtils;
-import org.elasticsearch.index.fielddata.ordinals.BaseGlobalIndexFieldData;
+import org.elasticsearch.index.fielddata.ordinals.GlobalIndexFieldData;
+import org.elasticsearch.index.fielddata.ordinals.GlobalIndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
@@ -97,8 +98,8 @@ public interface IndexFieldDataCache {
                 if (sizeInBytes == -1 && value != null) {
                     sizeInBytes = value.getMemorySizeInBytes();
                 }
-            } else if (genericValue instanceof BaseGlobalIndexFieldData) {
-                BaseGlobalIndexFieldData value = (BaseGlobalIndexFieldData) genericValue;
+            } else if (genericValue instanceof GlobalIndexFieldData) {
+                GlobalIndexFieldData value = (GlobalIndexFieldData) genericValue;
                 if (sizeInBytes == -1 && value != null) {
                     sizeInBytes = value.getMemorySizeInBytes();
                 }
@@ -142,9 +143,9 @@ public interface IndexFieldDataCache {
             //noinspection unchecked
             return (IFD) cache.get(key, new Callable<RamUsage>() {
                 @Override
-                public BaseGlobalIndexFieldData call() throws Exception {
+                public GlobalIndexFieldData call() throws Exception {
                     indexReader.addReaderClosedListener(FieldBased.this);
-                    BaseGlobalIndexFieldData ifd = (BaseGlobalIndexFieldData) indexFieldData.localGlobalDirect(indexReader);
+                    GlobalIndexFieldData ifd = (GlobalIndexFieldData) indexFieldData.localGlobalDirect(indexReader);
                     key.sizeInBytes = ifd.getMemorySizeInBytes();
 
                     if (indexService != null) {

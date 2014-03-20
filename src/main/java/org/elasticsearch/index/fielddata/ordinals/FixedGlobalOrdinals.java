@@ -50,10 +50,10 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
         globalOrdToFirstSegment.add(0);
         final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd = new MonotonicAppendingLongBuffer(acceptableOverheadRatio);
         globalOrdToFirstSegmentOrd.add(0);
-        final MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds = new MonotonicAppendingLongBuffer[indexReader.leaves().size()];
-        for (int i = 0; i < segmentOrdToGlobalOrds.length; i++) {
-            segmentOrdToGlobalOrds[i] = new MonotonicAppendingLongBuffer(acceptableOverheadRatio);
-            segmentOrdToGlobalOrds[i].add(0);
+        final MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrdLookups = new MonotonicAppendingLongBuffer[indexReader.leaves().size()];
+        for (int i = 0; i < segmentOrdToGlobalOrdLookups.length; i++) {
+            segmentOrdToGlobalOrdLookups[i] = new MonotonicAppendingLongBuffer(acceptableOverheadRatio);
+            segmentOrdToGlobalOrdLookups[i].add(0);
         }
 
         long currentGlobalOrdinal = 0;
@@ -64,7 +64,7 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
             globalOrdToFirstSegment.add(termIterator.firstReaderIndex());
             globalOrdToFirstSegmentOrd.add(termIterator.firstLocalOrdinal());
             for (TermIterator.LeafSource leafSource : termIterator.competitiveLeafs()) {
-                segmentOrdToGlobalOrds[leafSource.context.ord].add(currentGlobalOrdinal);
+                segmentOrdToGlobalOrdLookups[leafSource.context.ord].add(currentGlobalOrdinal);
             }
         }
 
@@ -73,52 +73,16 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
         memorySizeInBytesCounter += globalOrdToFirstSegment.ramBytesUsed();
         globalOrdToFirstSegmentOrd.freeze();
         memorySizeInBytesCounter += globalOrdToFirstSegmentOrd.ramBytesUsed();
-        for (MonotonicAppendingLongBuffer segmentOrdToGlobalOrd : segmentOrdToGlobalOrds) {
-            segmentOrdToGlobalOrd.freeze();
-            memorySizeInBytesCounter += segmentOrdToGlobalOrd.ramBytesUsed();
+        for (MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup : segmentOrdToGlobalOrdLookups) {
+            segmentOrdToGlobalOrdLookup.freeze();
+            memorySizeInBytesCounter += segmentOrdToGlobalOrdLookup.ramBytesUsed();
         }
         final long memorySizeInBytes = memorySizeInBytesCounter;
         breakerService.getBreaker().addWithoutBreaking(memorySizeInBytes);
 
-        return new BaseGlobalIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals) {
-
-            @Override
-            protected BytesRef getValueByGlobalOrd(long globalOrdinal) {
-                assert globalOrdinal != Ordinals.MISSING_ORDINAL;
-
-                int readerIndex = (int) globalOrdToFirstSegment.get(globalOrdinal);
-                AtomicFieldData.WithOrdinals afd = withOrdinals[readerIndex];
-                long segmentOrd =  globalOrdToFirstSegmentOrd.get(globalOrdinal);
-                return afd.getBytesValues(false).getValueByOrd(segmentOrd);
-            }
-
-            @Override
-            protected int getReaderIndex(long globalOrdinal) {
-                assert globalOrdinal != Ordinals.MISSING_ORDINAL;
-                return (int) globalOrdToFirstSegment.get(globalOrdinal);
-            }
-
-            @Override
-            protected long getSegmentOrdinal(long globalOrdinal) {
-                assert globalOrdinal != Ordinals.MISSING_ORDINAL;
-                return globalOrdToFirstSegmentOrd.get(globalOrdinal);
-            }
-
-            @Override
-            protected BytesValues.WithOrdinals createSegmentBytesValues(int readerIndex) {
-                return withOrdinals[readerIndex].getBytesValues(false);
-            }
-
-            @Override
-            protected long getGlobalOrd(int readerIndex, long segmentOrd) {
-                return segmentOrdToGlobalOrds[readerIndex].get(segmentOrd);
-            }
-
-            public long getMemorySizeInBytes() {
-                return memorySizeInBytes;
-            }
-
-        };
+        return new GlobalIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals,
+                globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrdLookups, memorySizeInBytes
+        );
     }
 
     private final static class TermIterator implements BytesRefIterator {

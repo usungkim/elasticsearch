@@ -32,7 +32,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.*;
-import org.elasticsearch.index.fielddata.ordinals.BaseGlobalIndexFieldData;
+import org.elasticsearch.index.fielddata.ordinals.GlobalIndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
@@ -99,8 +99,8 @@ public class IndicesFieldDataCache extends AbstractComponent implements RemovalL
             if (sizeInBytes == -1 && value != null) {
                 sizeInBytes = value.getMemorySizeInBytes();
             }
-        } else if (genericValue instanceof BaseGlobalIndexFieldData) {
-            BaseGlobalIndexFieldData value = (BaseGlobalIndexFieldData) genericValue;
+        } else if (genericValue instanceof GlobalIndexFieldData) {
+            GlobalIndexFieldData value = (GlobalIndexFieldData) genericValue;
             if (sizeInBytes == -1 && value != null) {
                 sizeInBytes = value.getMemorySizeInBytes();
             }
@@ -171,7 +171,7 @@ public class IndicesFieldDataCache extends AbstractComponent implements RemovalL
                 @Override
                 public RamUsage call() throws Exception {
                     indexReader.addReaderClosedListener(IndexFieldCache.this);
-                    BaseGlobalIndexFieldData ifd = (BaseGlobalIndexFieldData) indexFieldData.localGlobalDirect(indexReader);
+                    GlobalIndexFieldData ifd = (GlobalIndexFieldData) indexFieldData.localGlobalDirect(indexReader);
 
                     if (indexService != null) {
                         ShardId shardId = ShardUtils.extractShardId(indexReader);

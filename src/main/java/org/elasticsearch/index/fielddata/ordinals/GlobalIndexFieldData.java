@@ -23,6 +23,8 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongsRef;
+import org.apache.lucene.util.packed.AppendingPackedLongBuffer;
+import org.apache.lucene.util.packed.MonotonicAppendingLongBuffer;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.AbstractIndexComponent;
@@ -34,18 +36,20 @@ import org.elasticsearch.index.mapper.FieldMapper;
 /**
  * Base class for global ordinal consumption.
  */
-public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent implements IndexFieldData.WithOrdinals, RamUsage {
+public final class GlobalIndexFieldData extends AbstractIndexComponent implements IndexFieldData.WithOrdinals, RamUsage {
 
     private final FieldMapper.Names fieldNames;
     private final Atomic[] atomicReaders;
+    private long memorySizeInBytes;
 
-    public BaseGlobalIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd) {
+    public GlobalIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes) {
         super(index, settings);
         this.fieldNames = fieldNames;
         this.atomicReaders = new Atomic[segmentAfd.length];
         for (int i = 0; i < segmentAfd.length; i++) {
-            atomicReaders[i] = new Atomic(i, segmentAfd[i]);
+            atomicReaders[i] = new Atomic(segmentAfd[i], globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrds[i]);
         }
+        this.memorySizeInBytes = memorySizeInBytes;
     }
 
     @Override
@@ -98,31 +102,29 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
 
     }
 
-    protected abstract int getReaderIndex(long globalOrdinal);
+    @Override
+    public long getMemorySizeInBytes() {
+        return memorySizeInBytes;
+    }
 
-    protected abstract long getSegmentOrdinal(long globalOrdinal);
+    private final class Atomic implements AtomicFieldData.WithOrdinals {
 
-    protected abstract BytesValues.WithOrdinals createSegmentBytesValues(int readerIndex);
-
-    // TODO: should be removed...
-    protected abstract BytesRef getValueByGlobalOrd(long globalOrd);
-
-    protected abstract long getGlobalOrd(int readerIndex, long segmentOrd);
-
-    private class Atomic implements AtomicFieldData.WithOrdinals {
-
-        private final int readerIndex;
         private final AtomicFieldData.WithOrdinals afd;
+        private final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
+        private final AppendingPackedLongBuffer globalOrdToFirstSegment;
+        private final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd;
 
-        private Atomic(int readerIndex, WithOrdinals afd) {
-            this.readerIndex = readerIndex;
+        private Atomic(WithOrdinals afd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup) {
             this.afd = afd;
+            this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
+            this.globalOrdToFirstSegment = globalOrdToFirstSegment;
+            this.globalOrdToFirstSegmentOrd = globalOrdToFirstSegmentOrd;
         }
 
         @Override
         public BytesValues.WithOrdinals getBytesValues(boolean needsHashes) {
             BytesValues.WithOrdinals values = afd.getBytesValues(false);
-            Ordinals.Docs wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(values.ordinals());
+            Ordinals.Docs wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(values.ordinals(), segmentOrdToGlobalOrdLookup);
             return new BytesValues.WithOrdinals(wrapper) {
 
                 int readerIndex;
@@ -130,16 +132,15 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
 
                 @Override
                 public BytesRef getValueByOrd(long globalOrd) {
-                    final long segmentOrd = getSegmentOrdinal(globalOrd);
-                    readerIndex = getReaderIndex(globalOrd);
+                    final long segmentOrd = globalOrdToFirstSegmentOrd.get(globalOrd);
+                    readerIndex = (int) globalOrdToFirstSegment.get(globalOrd);
                     if (bytesValuesCache.containsKey(readerIndex)) {
                         return bytesValuesCache.lget().getValueByOrd(segmentOrd);
                     } else {
-                        BytesValues.WithOrdinals k = createSegmentBytesValues(readerIndex);
+                        BytesValues.WithOrdinals k = atomicReaders[readerIndex].afd.getBytesValues(false);
                         bytesValuesCache.put(readerIndex, k);
                         return k.getValueByOrd(segmentOrd);
                     }
-//                    return getValueByGlobalOrd(globalOrd);
                 }
 
                 @Override
@@ -183,13 +184,16 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
         public void close() {
         }
 
-        private class SegmentOrdinalsToGlobalOrdinalsWrapper implements Ordinals.Docs {
+        private final class SegmentOrdinalsToGlobalOrdinalsWrapper implements Ordinals.Docs {
 
             private final Ordinals.Docs segmentOrdinals;
+            private final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
+
             private long currentGlobalOrd;
 
-            private SegmentOrdinalsToGlobalOrdinalsWrapper(Ordinals.Docs segmentOrdinals) {
+            private SegmentOrdinalsToGlobalOrdinalsWrapper(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup) {
                 this.segmentOrdinals = segmentOrdinals;
+                this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
             }
 
             @Override
@@ -197,7 +201,7 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
                 return new Ordinals() {
                     @Override
                     public long getMemorySizeInBytes() {
-                        return BaseGlobalIndexFieldData.this.getMemorySizeInBytes();
+                        return GlobalIndexFieldData.this.getMemorySizeInBytes();
                     }
 
                     @Override
@@ -250,14 +254,14 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
             @Override
             public long getOrd(int docId) {
                 long segmentOrd = segmentOrdinals.getOrd(docId);
-                return currentGlobalOrd = getGlobalOrd(readerIndex, segmentOrd);
+                return currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
             }
 
             @Override
             public LongsRef getOrds(int docId) {
                 LongsRef refs = segmentOrdinals.getOrds(docId);
                 for (int i = refs.offset; i < refs.length; i++) {
-                    refs.longs[i] = getGlobalOrd(readerIndex, refs.longs[i]);
+                    refs.longs[i] = segmentOrdToGlobalOrdLookup.get(refs.longs[i]);
                 }
                 return refs;
             }
@@ -265,7 +269,7 @@ public abstract class BaseGlobalIndexFieldData extends AbstractIndexComponent im
             @Override
             public long nextOrd() {
                 long segmentOrd = segmentOrdinals.nextOrd();
-                return currentGlobalOrd = getGlobalOrd(readerIndex, segmentOrd);
+                return currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
             }
 
             @Override
