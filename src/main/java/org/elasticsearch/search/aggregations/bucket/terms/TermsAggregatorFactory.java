@@ -68,10 +68,36 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
             Aggregator create(String name, AggregatorFactories factories, ValuesSource valuesSource, long estimatedBucketCount,
                               InternalOrder order, int requiredSize, int shardSize, long minDocCount, IncludeExclude includeExclude,
                               AggregationContext aggregationContext, Aggregator parent) {
+                return GLOBAL_ORDINALS_HASH.create(
+                        name, factories, valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount,
+                        includeExclude,aggregationContext, parent
+                );
+            }
+
+        },
+        GLOBAL_ORDINALS_HASH(new ParseField("global_ordinals")) {
+
+            @Override
+            Aggregator create(String name, AggregatorFactories factories, ValuesSource valuesSource, long estimatedBucketCount,
+                              InternalOrder order, int requiredSize, int shardSize, long minDocCount, IncludeExclude includeExclude,
+                              AggregationContext aggregationContext, Aggregator parent) {
                 if (includeExclude != null) {
                     throw new ElasticsearchIllegalArgumentException("The `" + this + "` execution mode cannot filter terms.");
                 }
-                return new StringTermsAggregator.WithGlobalOrdinals(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
+                return new StringTermsAggregator.WithGlobalOrdinalsHash(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
+            }
+
+        },
+        GLOBAL_ORDINALS_DIRECT(new ParseField("global_ordinals")) {
+
+            @Override
+            Aggregator create(String name, AggregatorFactories factories, ValuesSource valuesSource, long estimatedBucketCount,
+                              InternalOrder order, int requiredSize, int shardSize, long minDocCount, IncludeExclude includeExclude,
+                              AggregationContext aggregationContext, Aggregator parent) {
+                if (includeExclude != null) {
+                    throw new ElasticsearchIllegalArgumentException("The `" + this + "` execution mode cannot filter terms.");
+                }
+                return new StringTermsAggregator.WithGlobalOrdinalsHash(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
             }
 
         };

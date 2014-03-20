@@ -22,6 +22,8 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.Lists;
 import jsr166y.ThreadLocalRandom;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -60,7 +62,7 @@ public class TermsAggregationSearchBenchmark {
     static int BATCH = 1000;
     static int QUERY_WARMUP = 10;
     static int QUERY_COUNT = 100;
-    static int NUMBER_OF_TERMS = 200;
+    static int NUMBER_OF_TERMS = 100000;
     static int NUMBER_OF_MULTI_VALUE_TERMS = 10;
     static int STRING_TERM_SIZE = 5;
 
@@ -117,21 +119,19 @@ public class TermsAggregationSearchBenchmark {
 
         client = clientNode.client();
 
-        long[] lValues = new long[NUMBER_OF_TERMS];
-        for (int i = 0; i < NUMBER_OF_TERMS; i++) {
-            lValues[i] = ThreadLocalRandom.current().nextLong();
-        }
-        String[] sValues = new String[NUMBER_OF_TERMS];
-        for (int i = 0; i < NUMBER_OF_TERMS; i++) {
-            sValues[i] = RandomStrings.randomAsciiOfLength(random, STRING_TERM_SIZE);
-        }
-
         Thread.sleep(10000);
         try {
             client.admin().indices().create(createIndexRequest("test").mapping("type1", jsonBuilder()
               .startObject()
                 .startObject("type1")
                   .startObject("properties")
+                    .startObject("s_value")
+                      .field("type", "string")
+                      .field("index", "not_analyzed")
+                      .startObject("fielddata")
+                        .field("global_ordinals", "fixed")
+                      .endObject()
+                    .endObject()
                     .startObject("s_value_dv")
                       .field("type", "string")
                       .field("index", "no")
@@ -165,6 +165,15 @@ public class TermsAggregationSearchBenchmark {
                   .endObject()
                 .endObject()
               .endObject())).actionGet();
+
+            long[] lValues = new long[NUMBER_OF_TERMS];
+            for (int i = 0; i < NUMBER_OF_TERMS; i++) {
+                lValues[i] = ThreadLocalRandom.current().nextLong();
+            }
+            String[] sValues = new String[NUMBER_OF_TERMS];
+            for (int i = 0; i < NUMBER_OF_TERMS; i++) {
+                sValues[i] = RandomStrings.randomAsciiOfLength(random, STRING_TERM_SIZE);
+            }
 
             StopWatch stopWatch = new StopWatch().start();
 
@@ -235,8 +244,11 @@ public class TermsAggregationSearchBenchmark {
         stats.add(terms("terms_facet_map_s", Method.FACET, "s_value", "map"));
         stats.add(terms("terms_facet_map_s_dv", Method.FACET, "s_value_dv", "map"));
         stats.add(terms("terms_agg_s", Method.AGGREGATION, "s_value", null));
-        stats.add(terms("terms_agg_s", Method.AGGREGATION, "s_value", "global_ordinals"));
+        stats.add(terms("terms_agg_s_global_ords_hash", Method.AGGREGATION, "s_value", "global_ordinals_hash"));
+        stats.add(terms("terms_agg_s_global_ords_direct", Method.AGGREGATION, "s_value", "global_ordinals_direct"));
         stats.add(terms("terms_agg_s_dv", Method.AGGREGATION, "s_value_dv", null));
+        stats.add(terms("terms_agg_s_dv_global_ords_hash", Method.AGGREGATION, "s_value_dv", "global_ordinals_hash"));
+        stats.add(terms("terms_agg_s_dv_global_ords_direct", Method.AGGREGATION, "s_value_dv", "global_ordinals_direct"));
         stats.add(terms("terms_agg_map_s", Method.AGGREGATION, "s_value", "map"));
         stats.add(terms("terms_agg_map_s_dv", Method.AGGREGATION, "s_value_dv", "map"));
         stats.add(terms("terms_facet_l", Method.FACET, "l_value", null));
@@ -328,6 +340,12 @@ public class TermsAggregationSearchBenchmark {
             totalQueryTime += searchResponse.getTookInMillis();
         }
         System.out.println("--> Terms Agg (" + name + "): " + (totalQueryTime / QUERY_COUNT) + "ms");
+
+        NodesStatsResponse nodesStatsResponse = client.admin().cluster().prepareNodesStats().setJvm(true).get();
+        NodeStats nodeStats = nodesStatsResponse.iterator().next();
+        System.out.println("--> Heap used: " + nodeStats.getJvm().mem().getHeapUsed());
+        System.out.println("--> Fielddata memory size: " + nodeStats.getIndices().getFieldData().getMemorySize());
+
         return new StatsResult(name, totalQueryTime);
     }
 
