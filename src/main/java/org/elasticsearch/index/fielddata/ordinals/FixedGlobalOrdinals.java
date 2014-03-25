@@ -29,9 +29,12 @@ import org.apache.lucene.util.packed.AppendingPackedLongBuffer;
 import org.apache.lucene.util.packed.MonotonicAppendingLongBuffer;
 import org.apache.lucene.util.packed.PackedInts;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.AbstractIndexComponent;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
 
 import java.io.IOException;
@@ -41,10 +44,16 @@ import java.util.List;
 
 /**
  */
-public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
+public class FixedGlobalOrdinals extends AbstractIndexComponent implements GlobalOrdinalsBuilder {
+
+    public FixedGlobalOrdinals(Index index, @IndexSettings Settings indexSettings) {
+        super(index, indexSettings);
+    }
 
     @Override
     public IndexFieldData.WithOrdinals build(final IndexReader indexReader, IndexFieldData.WithOrdinals indexFieldData, Settings settings, CircuitBreakerService breakerService) throws IOException {
+        long startTime = System.currentTimeMillis();
+
         final float acceptableOverheadRatio = settings.getAsFloat("acceptable_overhead_ratio", PackedInts.FASTEST);
         final AppendingPackedLongBuffer globalOrdToFirstSegment = new AppendingPackedLongBuffer(acceptableOverheadRatio);
         globalOrdToFirstSegment.add(0);
@@ -80,6 +89,9 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
         final long memorySizeInBytes = memorySizeInBytesCounter;
         breakerService.getBreaker().addWithoutBreaking(memorySizeInBytes);
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("Global ordinals loading for " + currentGlobalOrdinal + " values, took: " + (System.currentTimeMillis() - startTime) + " ms");
+        }
         return new GlobalIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals,
                 globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrdLookups, memorySizeInBytes,
                 currentGlobalOrdinal

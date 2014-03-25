@@ -23,13 +23,9 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.FieldMapper.Loading;
 
-import static org.elasticsearch.index.mapper.FieldMapper.GlobalOrdinals;
-
 /**
  */
 public class FieldDataType {
-
-
 
     public static final String FORMAT_KEY = "format";
     public static final String DOC_VALUES_FORMAT_VALUE = "doc_values";
@@ -38,7 +34,6 @@ public class FieldDataType {
     private final String typeFormat;
     private final Loading loading;
     private final Settings settings;
-    private final GlobalOrdinals globalOrdinals;
 
     public FieldDataType(String type) {
         this(type, ImmutableSettings.Builder.EMPTY_SETTINGS);
@@ -54,8 +49,6 @@ public class FieldDataType {
         this.settings = settings;
         final String loading = settings.get(Loading.KEY);
         this.loading = Loading.parse(loading, Loading.LAZY);
-        final String globalOrdinals = settings.get(GlobalOrdinals.KEY);
-        this.globalOrdinals = GlobalOrdinals.parse(globalOrdinals, GlobalOrdinals.DISABLED);
     }
 
     public String getType() {
@@ -68,10 +61,6 @@ public class FieldDataType {
 
     public Loading getLoading() {
         return loading;
-    }
-
-    public GlobalOrdinals getGlobalOrdinals() {
-        return globalOrdinals;
     }
 
     public String getFormat(Settings indexSettings) {

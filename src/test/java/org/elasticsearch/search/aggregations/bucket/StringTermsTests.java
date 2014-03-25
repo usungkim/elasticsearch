@@ -65,11 +65,7 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
 
     @Before
     public void init() throws Exception {
-        prepareCreate("idx")
-                .addMapping("type", jsonBuilder().startObject().startObject("type").startObject("properties")
-                            .startObject(SINGLE_VALUED_FIELD_NAME).field("type", "string").startObject("fielddata").field("global_ordinals", "fixed").endObject().endObject()
-                        .endObject().endObject().endObject())
-                .get();
+        createIndex("idx");
         IndexRequestBuilder[] lowCardBuilders = new IndexRequestBuilder[5]; // TODO randomize the size?
         for (int i = 0; i < lowCardBuilders.length; i++) {
             lowCardBuilders[i] = client().prepareIndex("idx", "type").setSource(jsonBuilder()
