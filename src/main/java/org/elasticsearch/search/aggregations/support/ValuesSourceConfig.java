@@ -37,6 +37,7 @@ public class ValuesSourceConfig<VS extends ValuesSource> {
     boolean needsHashes = false;
     boolean ensureUnique = false;
     boolean ensureSorted = false;
+    String executionHint;
 
     public ValuesSourceConfig(Class<VS> valueSourceType) {
         this.valueSourceType = valueSourceType;
@@ -113,5 +114,9 @@ public class ValuesSourceConfig<VS extends ValuesSource> {
     public ValuesSourceConfig<VS> ensureSorted(boolean sorted) {
         this.ensureSorted = sorted;
         return this;
+    }
+
+    public void executionHint(String executionHint) {
+        this.executionHint = executionHint;
     }
 }

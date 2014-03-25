@@ -136,6 +136,7 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
 
     public TermsAggregatorFactory(String name, ValuesSourceConfig valueSourceConfig, InternalOrder order, int requiredSize, int shardSize, long minDocCount, IncludeExclude includeExclude, String executionHint) {
         super(name, StringTerms.TYPE.name(), valueSourceConfig);
+        valueSourceConfig.executionHint(executionHint);
         this.order = order;
         this.requiredSize = requiredSize;
         this.shardSize = shardSize;

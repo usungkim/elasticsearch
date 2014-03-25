@@ -212,6 +212,7 @@ public class AggregationContext implements ReaderContextAware, ScorerAware {
         if (config.needsHashes) { // the data source needs hash if at least one consumer needs hashes
             dataSource.setNeedsHashes(true);
         }
+        dataSource.setExecutionHint(config.executionHint);
         if (dataSource instanceof FieldDataSource.Bytes.WithOrdinals) {
             return new BytesValuesSource.WithOrdinals((FieldDataSource.Bytes.WithOrdinals) dataSource);
         } else {

@@ -146,6 +146,8 @@ public abstract class FieldDataSource {
      */
     public void setNeedsHashes(boolean needsHashes) {}
 
+    public void setExecutionHint(String executionHint) {}
+
     public abstract MetaData metaData();
 
     public static abstract class Bytes extends FieldDataSource {
@@ -165,6 +167,7 @@ public abstract class FieldDataSource {
                 protected boolean needsHashes;
                 protected final IndexFieldData.WithOrdinals<?> indexFieldData;
                 protected final MetaData metaData;
+                private String executionHint;
 
                 protected AtomicFieldData.WithOrdinals<?> atomicFieldData;
                 private BytesValues.WithOrdinals bytesValues;
@@ -186,6 +189,11 @@ public abstract class FieldDataSource {
 
                 public final void setNeedsHashes(boolean needsHashes) {
                     this.needsHashes = needsHashes;
+                }
+
+                @Override
+                public void setExecutionHint(String executionHint) {
+                    this.executionHint = executionHint;
                 }
 
                 @Override
@@ -217,7 +225,9 @@ public abstract class FieldDataSource {
 
                 @Override
                 public void setNextReader(IndexReaderContext reader) {
-                    globalFieldData = indexFieldData.loadGlobal(reader.reader());
+                    if (executionHint != null && executionHint.contains("global_ordinals")) {
+                        globalFieldData = indexFieldData.loadGlobal(reader.reader());
+                    }
                 }
 
                 @Override
