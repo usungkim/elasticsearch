@@ -75,7 +75,7 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
             }
 
         },
-        GLOBAL_ORDINALS_HASH(new ParseField("global_ordinals")) {
+        GLOBAL_ORDINALS_HASH(new ParseField("global_ordinals_hash")) {
 
             @Override
             Aggregator create(String name, AggregatorFactories factories, ValuesSource valuesSource, long estimatedBucketCount,
@@ -88,7 +88,7 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
             }
 
         },
-        GLOBAL_ORDINALS_DIRECT(new ParseField("global_ordinals")) {
+        GLOBAL_ORDINALS_DIRECT(new ParseField("global_ordinals_direct")) {
 
             @Override
             Aggregator create(String name, AggregatorFactories factories, ValuesSource valuesSource, long estimatedBucketCount,

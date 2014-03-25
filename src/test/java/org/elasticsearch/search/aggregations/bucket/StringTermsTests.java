@@ -145,9 +145,9 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
     @Test
     public void singleValueField_withGlobalOrdinals() throws Exception {
         String[] hints = new String[]{
-                TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS,
-                TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS_HASH,
-                TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS_DIRECT
+                "global_ordinals",
+                "global_ordinals_hash",
+                "global_ordinals_direct"
         };
         for (String hint : hints) {
             logger.info("Hint:" + hint);

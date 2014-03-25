@@ -138,7 +138,8 @@ public final class GlobalIndexFieldData extends AbstractIndexComponent implement
             BytesValues.WithOrdinals values = afd.getBytesValues(false);
             Ordinals.Docs actual = values.ordinals();
             Ordinals.Docs wrapper;
-            if (actual.getMaxOrd() < 512) { // TODO: Maybe for small segments, we should not use global ord cache?
+            // TODO: Think harder how nicely inject BigArrays here...
+            if (actual.getMaxOrd() < 512 && SearchContext.current() != null) { // TODO: Maybe for small segments, we should not use global ord cache?
                 wrapper = new Caching(actual, segmentOrdToGlobalOrdLookup);
             } else {
                 wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(actual, segmentOrdToGlobalOrdLookup);
