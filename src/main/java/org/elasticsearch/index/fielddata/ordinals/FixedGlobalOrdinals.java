@@ -81,7 +81,8 @@ public class FixedGlobalOrdinals implements GlobalOrdinalsBuilder {
         breakerService.getBreaker().addWithoutBreaking(memorySizeInBytes);
 
         return new GlobalIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals,
-                globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrdLookups, memorySizeInBytes
+                globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrdLookups, memorySizeInBytes,
+                currentGlobalOrdinal
         );
     }
 

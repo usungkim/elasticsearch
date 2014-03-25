@@ -144,24 +144,30 @@ public class StringTermsTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void singleValueField_withGlobalOrdinals() throws Exception {
-        SearchResponse response = client().prepareSearch("idx").setTypes("type")
-                .addAggregation(terms("terms")
-                        .executionHint(TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS)
-                        .field(SINGLE_VALUED_FIELD_NAME))
-                .execute().actionGet();
+        String[] hints = new String[]{
+                TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS,
+                TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS_HASH,
+                TermsAggregatorFactory.EXECUTION_HINT_VALUE_GLOBAL_ORDINALS_DIRECT
+        };
+        for (String hint : hints) {
+            logger.info("Hint:" + hint);
+            SearchResponse response = client().prepareSearch("idx").setTypes("type")
+                    .addAggregation(terms("terms")
+                            .executionHint(hint)
+                            .field(SINGLE_VALUED_FIELD_NAME))
+                    .execute().actionGet();
+            assertSearchResponse(response);
 
-        assertSearchResponse(response);
-
-        Terms terms = response.getAggregations().get("terms");
-        assertThat(terms, notNullValue());
-        assertThat(terms.getName(), equalTo("terms"));
-        assertThat(terms.getBuckets().size(), equalTo(5));
-
-        for (int i = 0; i < 5; i++) {
-            Terms.Bucket bucket = terms.getBucketByKey("val" + i);
-            assertThat(bucket, notNullValue());
-            assertThat(key(bucket), equalTo("val" + i));
-            assertThat(bucket.getDocCount(), equalTo(1l));
+            Terms terms = response.getAggregations().get("terms");
+            assertThat(terms, notNullValue());
+            assertThat(terms.getName(), equalTo("terms"));
+            assertThat(terms.getBuckets().size(), equalTo(5));
+            for (int i = 0; i < 5; i++) {
+                Terms.Bucket bucket = terms.getBucketByKey("val" + i);
+                assertThat(bucket, notNullValue());
+                assertThat(key(bucket), equalTo("val" + i));
+                assertThat(bucket.getDocCount(), equalTo(1l));
+            }
         }
     }
 
