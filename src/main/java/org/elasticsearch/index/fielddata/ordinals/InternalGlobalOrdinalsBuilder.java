@@ -44,9 +44,9 @@ import java.util.List;
 
 /**
  */
-public class FixedGlobalOrdinals extends AbstractIndexComponent implements GlobalOrdinalsBuilder {
+public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implements GlobalOrdinalsBuilder {
 
-    public FixedGlobalOrdinals(Index index, @IndexSettings Settings indexSettings) {
+    public InternalGlobalOrdinalsBuilder(Index index, @IndexSettings Settings indexSettings) {
         super(index, indexSettings);
     }
 
@@ -92,7 +92,7 @@ public class FixedGlobalOrdinals extends AbstractIndexComponent implements Globa
         if (logger.isDebugEnabled()) {
             logger.debug("Global ordinals loading for " + currentGlobalOrdinal + " values, took: " + (System.currentTimeMillis() - startTime) + " ms");
         }
-        return new GlobalIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals,
+        return new GlobalOrdinalsIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals,
                 globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrdLookups, memorySizeInBytes,
                 currentGlobalOrdinal
         );

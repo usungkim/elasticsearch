@@ -333,7 +333,6 @@ public class StringTermsAggregator extends BucketsAggregator {
             super(name, factories, valuesSource, esitmatedBucketCount, order, requiredSize, shardSize, minDocCount, null, aggregationContext, parent);
             this.valuesSource = valuesSource;
             this.bucketOrds = new LongHash(estimatedBucketCount, aggregationContext.bigArrays());
-            assert valuesSource.hasGlobalOrdinals();
         }
 
         @Override
@@ -416,7 +415,6 @@ public class StringTermsAggregator extends BucketsAggregator {
             super(name, factories, valuesSource, esitmatedBucketCount, order, requiredSize, shardSize, minDocCount, null, aggregationContext, parent);
             this.valuesSource = valuesSource;
             this.seenOrds = new OpenBitSet(esitmatedBucketCount);
-            assert valuesSource.hasGlobalOrdinals();
         }
 
         @Override

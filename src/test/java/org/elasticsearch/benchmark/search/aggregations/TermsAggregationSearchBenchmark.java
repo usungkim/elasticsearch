@@ -108,6 +108,7 @@ public class TermsAggregationSearchBenchmark {
                 .put(SETTING_NUMBER_OF_REPLICAS, 0)
                 .build();
 
+//        String clusterName = TermsAggregationSearchBenchmark.class.getSimpleName() + "low";
         String clusterName = TermsAggregationSearchBenchmark.class.getSimpleName();
         nodes = new InternalNode[1];
         for (int i = 0; i < nodes.length; i++) {
@@ -128,18 +129,10 @@ public class TermsAggregationSearchBenchmark {
               .startObject()
                 .startObject("type1")
                   .startObject("properties")
-                    .startObject("s_value")
-                      .field("type", "string")
-                      .field("index", "not_analyzed")
-                      .startObject("fielddata")
-                        .field("global_ordinals", "fixed")
-                      .endObject()
-                    .endObject()
                     .startObject("s_value_dv")
                       .field("type", "string")
                       .field("index", "no")
                       .startObject("fielddata")
-                        .field("global_ordinals", "fixed")
                         .field("format", "doc_values")
                       .endObject()
                     .endObject()
@@ -147,7 +140,6 @@ public class TermsAggregationSearchBenchmark {
                       .field("type", "string")
                       .field("index", "no")
                       .startObject("fielddata")
-                        .field("global_ordinals", "fixed")
                         .field("format", "doc_values")
                       .endObject()
                     .endObject()
@@ -242,47 +234,60 @@ public class TermsAggregationSearchBenchmark {
 
 
         List<StatsResult> stats = Lists.newArrayList();
-        stats.add(terms("terms_facet_s", Method.FACET, "s_value", null));
-      stats.add(terms("terms_facet_s_dv", Method.FACET, "s_value_dv", null));
-        stats.add(terms("terms_facet_map_s", Method.FACET, "s_value", "map"));
-        stats.add(terms("terms_facet_map_s_dv", Method.FACET, "s_value_dv", "map"));
+//        stats.add(terms("terms_facet_s", Method.FACET, "s_value", null));
+//        stats.add(terms("terms_facet_s_dv", Method.FACET, "s_value_dv", null));
+//        stats.add(terms("terms_facet_map_s", Method.FACET, "s_value", "map"));
+//        stats.add(terms("terms_facet_map_s_dv", Method.FACET, "s_value_dv", "map"));
         stats.add(terms("terms_agg_s", Method.AGGREGATION, "s_value", null));
         stats.add(terms("terms_agg_s_global_ords_hash", Method.AGGREGATION, "s_value", "global_ordinals_hash"));
         stats.add(terms("terms_agg_s_global_ords_direct", Method.AGGREGATION, "s_value", "global_ordinals_direct"));
         stats.add(terms("terms_agg_s_dv", Method.AGGREGATION, "s_value_dv", null));
         stats.add(terms("terms_agg_s_dv_global_ords_hash", Method.AGGREGATION, "s_value_dv", "global_ordinals_hash"));
         stats.add(terms("terms_agg_s_dv_global_ords_direct", Method.AGGREGATION, "s_value_dv", "global_ordinals_direct"));
-        stats.add(terms("terms_agg_map_s", Method.AGGREGATION, "s_value", "map"));
-        stats.add(terms("terms_agg_map_s_dv", Method.AGGREGATION, "s_value_dv", "map"));
-        stats.add(terms("terms_facet_l", Method.FACET, "l_value", null));
-        stats.add(terms("terms_facet_l_dv", Method.FACET, "l_value_dv", null));
-        stats.add(terms("terms_agg_l", Method.AGGREGATION, "l_value", null));
-        stats.add(terms("terms_agg_l_dv", Method.AGGREGATION, "l_value_dv", null));
-        stats.add(terms("terms_facet_sm", Method.FACET, "sm_value", null));
-        stats.add(terms("terms_facet_sm_dv", Method.FACET, "sm_value_dv", null));
-        stats.add(terms("terms_facet_map_sm", Method.FACET, "sm_value", "map"));
-        stats.add(terms("terms_facet_map_sm_dv", Method.FACET, "sm_value_dv", "map"));
-        stats.add(terms("terms_agg_sm", Method.AGGREGATION, "sm_value", null));
-        stats.add(terms("terms_agg_sm_dv", Method.AGGREGATION, "sm_value_dv", null));
-        stats.add(terms("terms_agg_map_sm", Method.AGGREGATION, "sm_value", "map"));
-        stats.add(terms("terms_agg_map_sm_dv", Method.AGGREGATION, "sm_value_dv", "map"));
-        stats.add(terms("terms_facet_lm", Method.FACET, "lm_value", null));
-        stats.add(terms("terms_facet_lm_dv", Method.FACET, "lm_value_dv", null));
-        stats.add(terms("terms_agg_lm", Method.AGGREGATION, "lm_value", null));
-        stats.add(terms("terms_agg_lm_dv", Method.AGGREGATION, "lm_value_dv", null));
+//        stats.add(terms("terms_agg_map_s", Method.AGGREGATION, "s_value", "map"));
+//        stats.add(terms("terms_agg_map_s_dv", Method.AGGREGATION, "s_value_dv", "map"));
+//        stats.add(terms("terms_facet_l", Method.FACET, "l_value", null));
+//        stats.add(terms("terms_facet_l_dv", Method.FACET, "l_value_dv", null));
+//        stats.add(terms("terms_agg_l", Method.AGGREGATION, "l_value", null));
+//        stats.add(terms("terms_agg_l_dv", Method.AGGREGATION, "l_value_dv", null));
+//        stats.add(terms("terms_facet_sm", Method.FACET, "sm_value", null));
+//        stats.add(terms("terms_facet_sm_dv", Method.FACET, "sm_value_dv", null));
+//        stats.add(terms("terms_facet_map_sm", Method.FACET, "sm_value", "map"));
+//        stats.add(terms("terms_facet_map_sm_dv", Method.FACET, "sm_value_dv", "map"));
+//        stats.add(terms("terms_agg_sm", Method.AGGREGATION, "sm_value", null));
+//        stats.add(terms("terms_agg_sm_dv", Method.AGGREGATION, "sm_value_dv", null));
+//        stats.add(terms("terms_agg_map_sm", Method.AGGREGATION, "sm_value", "map"));
+//        stats.add(terms("terms_agg_map_sm_dv", Method.AGGREGATION, "sm_value_dv", "map"));
+//        stats.add(terms("terms_facet_lm", Method.FACET, "lm_value", null));
+//        stats.add(terms("terms_facet_lm_dv", Method.FACET, "lm_value_dv", null));
+//        stats.add(terms("terms_agg_lm", Method.AGGREGATION, "lm_value", null));
+//        stats.add(terms("terms_agg_lm_dv", Method.AGGREGATION, "lm_value_dv", null));
+//
+//        stats.add(termsStats("terms_stats_facet_s_l", Method.FACET, "s_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_facet_s_l_dv", Method.FACET, "s_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_agg_s_l", Method.AGGREGATION, "s_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_agg_s_l_dv", Method.AGGREGATION, "s_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_facet_s_lm", Method.FACET, "s_value", "lm_value", null));
+//        stats.add(termsStats("terms_stats_facet_s_lm_dv", Method.FACET, "s_value_dv", "lm_value_dv", null));
+//        stats.add(termsStats("terms_stats_agg_s_lm", Method.AGGREGATION, "s_value", "lm_value", null));
+//        stats.add(termsStats("terms_stats_agg_s_lm_dv", Method.AGGREGATION, "s_value_dv", "lm_value_dv", null));
+//        stats.add(termsStats("terms_stats_facet_sm_l", Method.FACET, "sm_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_facet_sm_l_dv", Method.FACET, "sm_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_agg_sm_l", Method.AGGREGATION, "sm_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_agg_sm_l_dv", Method.AGGREGATION, "sm_value_dv", "l_value_dv", null));
 
-        stats.add(termsStats("terms_stats_facet_s_l", Method.FACET, "s_value", "l_value", null));
-        stats.add(termsStats("terms_stats_facet_s_l_dv", Method.FACET, "s_value_dv", "l_value_dv", null));
-        stats.add(termsStats("terms_stats_agg_s_l", Method.AGGREGATION, "s_value", "l_value", null));
-        stats.add(termsStats("terms_stats_agg_s_l_dv", Method.AGGREGATION, "s_value_dv", "l_value_dv", null));
-        stats.add(termsStats("terms_stats_facet_s_lm", Method.FACET, "s_value", "lm_value", null));
-        stats.add(termsStats("terms_stats_facet_s_lm_dv", Method.FACET, "s_value_dv", "lm_value_dv", null));
-        stats.add(termsStats("terms_stats_agg_s_lm", Method.AGGREGATION, "s_value", "lm_value", null));
-        stats.add(termsStats("terms_stats_agg_s_lm_dv", Method.AGGREGATION, "s_value_dv", "lm_value_dv", null));
-        stats.add(termsStats("terms_stats_facet_sm_l", Method.FACET, "sm_value", "l_value", null));
-        stats.add(termsStats("terms_stats_facet_sm_l_dv", Method.FACET, "sm_value_dv", "l_value_dv", null));
-        stats.add(termsStats("terms_stats_agg_sm_l", Method.AGGREGATION, "sm_value", "l_value", null));
-        stats.add(termsStats("terms_stats_agg_sm_l_dv", Method.AGGREGATION, "sm_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_facet_s_l", Method.FACET, "s_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_facet_s_l_dv", Method.FACET, "s_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_agg_s_l", Method.AGGREGATION, "s_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_agg_s_l_dv", Method.AGGREGATION, "s_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_facet_s_lm", Method.FACET, "s_value", "lm_value", null));
+//        stats.add(termsStats("terms_stats_facet_s_lm_dv", Method.FACET, "s_value_dv", "lm_value_dv", null));
+//        stats.add(termsStats("terms_stats_agg_s_lm", Method.AGGREGATION, "s_value", "lm_value", null));
+//        stats.add(termsStats("terms_stats_agg_s_lm_dv", Method.AGGREGATION, "s_value_dv", "lm_value_dv", null));
+//        stats.add(termsStats("terms_stats_facet_sm_l", Method.FACET, "sm_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_facet_sm_l_dv", Method.FACET, "sm_value_dv", "l_value_dv", null));
+//        stats.add(termsStats("terms_stats_agg_sm_l", Method.AGGREGATION, "sm_value", "l_value", null));
+//        stats.add(termsStats("terms_stats_agg_sm_l_dv", Method.AGGREGATION, "sm_value_dv", "l_value_dv", null));
         
         System.out.println("------------------ SUMMARY ----------------------------------------------");
         System.out.format(Locale.ENGLISH, "%35s%10s%10s%15s\n", "name", "took", "millis", "fieldata size");

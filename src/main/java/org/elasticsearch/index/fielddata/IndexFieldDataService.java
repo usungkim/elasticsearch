@@ -31,7 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.fielddata.ordinals.FixedGlobalOrdinals;
+import org.elasticsearch.index.fielddata.ordinals.InternalGlobalOrdinalsBuilder;
 import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.fielddata.plain.*;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -239,7 +239,7 @@ public class IndexFieldDataService extends AbstractIndexComponent {
                         fieldDataCaches.put(fieldNames.indexName(), cache);
                     }
 
-                    GlobalOrdinalsBuilder globalOrdinalBuilder = new FixedGlobalOrdinals(index(), indexSettings);
+                    GlobalOrdinalsBuilder globalOrdinalBuilder = new InternalGlobalOrdinalsBuilder(index(), indexSettings);
                     fieldData = builder.build(index, indexSettings, mapper, cache, circuitBreakerService, indexService.mapperService(), globalOrdinalBuilder);
                     loadedFieldData.put(fieldNames.indexName(), fieldData);
                 }

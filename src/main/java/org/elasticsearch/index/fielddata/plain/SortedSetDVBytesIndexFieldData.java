@@ -28,7 +28,6 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
-import org.elasticsearch.index.fielddata.ordinals.DisabledGlobalOrdinals;
 import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.mapper.FieldMapper.Names;
 import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
@@ -65,11 +64,6 @@ public class SortedSetDVBytesIndexFieldData extends DocValuesIndexFieldData impl
     @Override
     public SortedSetDVBytesAtomicFieldData loadDirect(AtomicReaderContext context) throws Exception {
         return load(context);
-    }
-
-    @Override
-    public boolean hasGlobalOrdinals() {
-        return !(globalOrdinalsBuilder instanceof DisabledGlobalOrdinals);
     }
 
     @Override

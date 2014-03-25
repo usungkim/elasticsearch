@@ -39,16 +39,16 @@ import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.search.internal.SearchContext;
 
 /**
- * Base class for global ordinal consumption.
+ * {@link IndexFieldData} impl based on global ordinals.
  */
-public final class GlobalIndexFieldData extends AbstractIndexComponent implements IndexFieldData.WithOrdinals, RamUsage {
+public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent implements IndexFieldData.WithOrdinals, RamUsage {
 
     private final FieldMapper.Names fieldNames;
     private final Atomic[] atomicReaders;
     private final long memorySizeInBytes;
     private final long numGlobalOrdinals;
 
-    public GlobalIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
+    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
         super(index, settings);
         this.fieldNames = fieldNames;
         this.atomicReaders = new Atomic[segmentAfd.length];
@@ -77,11 +77,6 @@ public final class GlobalIndexFieldData extends AbstractIndexComponent implement
     @Override
     public WithOrdinals localGlobalDirect(IndexReader indexReader) throws Exception {
         return this;
-    }
-
-    @Override
-    public boolean hasGlobalOrdinals() {
-        return true;
     }
 
     @Override
@@ -220,7 +215,7 @@ public final class GlobalIndexFieldData extends AbstractIndexComponent implement
                 return new Ordinals() {
                     @Override
                     public long getMemorySizeInBytes() {
-                        return GlobalIndexFieldData.this.getMemorySizeInBytes();
+                        return GlobalOrdinalsIndexFieldData.this.getMemorySizeInBytes();
                     }
 
                     @Override

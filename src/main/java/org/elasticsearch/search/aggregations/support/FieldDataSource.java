@@ -158,8 +158,6 @@ public abstract class FieldDataSource {
 
             public abstract void setNextReader(IndexReaderContext reader);
 
-            public abstract boolean hasGlobalOrdinals();
-
             public abstract BytesValues.WithOrdinals globalBytesValues();
 
             public static class FieldData extends WithOrdinals implements ReaderContextAware {
@@ -208,11 +206,6 @@ public abstract class FieldDataSource {
                             globalBytesValues = globalAtomicFieldData.getBytesValues(needsHashes);
                         }
                     }
-                }
-
-                @Override
-                public boolean hasGlobalOrdinals() {
-                    return indexFieldData.hasGlobalOrdinals();
                 }
 
                 @Override

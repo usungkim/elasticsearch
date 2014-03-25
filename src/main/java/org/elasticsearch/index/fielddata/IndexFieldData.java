@@ -193,8 +193,6 @@ public interface IndexFieldData<FD extends AtomicFieldData> extends IndexCompone
 
         WithOrdinals localGlobalDirect(IndexReader indexReader) throws Exception;
 
-        boolean hasGlobalOrdinals();
-
     }
 
 }

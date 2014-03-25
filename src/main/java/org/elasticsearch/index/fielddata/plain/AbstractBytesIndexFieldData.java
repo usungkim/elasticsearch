@@ -29,7 +29,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.*;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
-import org.elasticsearch.index.fielddata.ordinals.DisabledGlobalOrdinals;
 import org.elasticsearch.index.fielddata.ordinals.GlobalOrdinalsBuilder;
 import org.elasticsearch.index.mapper.FieldMapper.Names;
 import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
@@ -64,11 +63,6 @@ public abstract class AbstractBytesIndexFieldData<FD extends AtomicFieldData.Wit
     @Override
     public XFieldComparatorSource comparatorSource(@Nullable Object missingValue, SortMode sortMode) {
         return new BytesRefFieldComparatorSource(this, missingValue, sortMode);
-    }
-
-    @Override
-    public boolean hasGlobalOrdinals() {
-        return !(globalOrdinalsBuilder instanceof DisabledGlobalOrdinals);
     }
 
     @Override
