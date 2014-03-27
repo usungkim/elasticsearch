@@ -84,7 +84,7 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
                 if (includeExclude != null) {
                     throw new ElasticsearchIllegalArgumentException("The `" + this + "` execution mode cannot filter terms.");
                 }
-                return new StringTermsAggregator.WithGlobalOrdinalsHash(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
+                return new GlobalOrdinalsStringTermsAggregator.WithHash(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
             }
 
         },
@@ -97,7 +97,7 @@ public class TermsAggregatorFactory extends ValueSourceAggregatorFactory {
                 if (includeExclude != null) {
                     throw new ElasticsearchIllegalArgumentException("The `" + this + "` execution mode cannot filter terms.");
                 }
-                return new StringTermsAggregator.WithGlobalOrdinalsDirect(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
+                return new GlobalOrdinalsStringTermsAggregator(name, factories, (BytesValuesSource.WithOrdinals) valuesSource, estimatedBucketCount, order, requiredSize, shardSize, minDocCount, aggregationContext, parent);
             }
 
         };
