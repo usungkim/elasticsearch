@@ -109,4 +109,47 @@ public class InternalIndicesWarmer extends AbstractComponent implements IndicesW
             indexShard.warmerService().logger().trace("warming took [{}]", new TimeValue(took, TimeUnit.NANOSECONDS));
         }
     }
+
+    public void warmTop(final WarmerContext context) {
+        final IndexMetaData indexMetaData = clusterService.state().metaData().index(context.shardId().index().name());
+        if (indexMetaData == null) {
+            return;
+        }
+        if (!indexMetaData.settings().getAsBoolean(INDEX_WARMER_ENABLED, settings.getAsBoolean(INDEX_WARMER_ENABLED, true))) {
+            return;
+        }
+        IndexService indexService = indicesService.indexService(context.shardId().index().name());
+        if (indexService == null) {
+            return;
+        }
+        final IndexShard indexShard = indexService.shard(context.shardId().id());
+        if (indexShard == null) {
+            return;
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("[{}][{}] top warming [{}]", context.shardId().index().name(), context.shardId().id(), context.fullIndexReader());
+        }
+        indexShard.warmerService().onPreWarm();
+        long time = System.nanoTime();
+        final List<IndicesWarmer.Listener.TerminationHandle> terminationHandles = Lists.newArrayList();
+        // get a handle on pending tasks
+        for (final Listener listener : listeners) {
+            terminationHandles.add(listener.warmTop(indexShard, indexMetaData, context, threadPool));
+        }
+        // wait for termination
+        for (IndicesWarmer.Listener.TerminationHandle terminationHandle : terminationHandles) {
+            try {
+                terminationHandle.awaitTermination();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Top warming has been interrupted", e);
+                break;
+            }
+        }
+        long took = System.nanoTime() - time;
+        indexShard.warmerService().onPostWarm(took);
+        if (indexShard.warmerService().logger().isTraceEnabled()) {
+            indexShard.warmerService().logger().trace("top warming took [{}]", new TimeValue(took, TimeUnit.NANOSECONDS));
+        }
+    }
 }

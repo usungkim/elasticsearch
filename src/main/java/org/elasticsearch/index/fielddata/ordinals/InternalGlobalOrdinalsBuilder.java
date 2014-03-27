@@ -107,7 +107,7 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
         private BytesRef currentTerm;
 
         private TermIterator(IndexFieldData.WithOrdinals indexFieldData, List<AtomicReaderContext> leaves, AtomicFieldData.WithOrdinals[] withOrdinals) throws IOException {
-            this.leafSources = new ArrayList<LeafSource>(leaves.size());
+            this.leafSources = new ArrayList<>(leaves.size());
             this.sourceSlots = IntArrayList.newInstanceWithCapacity(leaves.size());
             this.competitiveSlots = IntArrayList.newInstanceWithCapacity(leaves.size());
             for (int i = 0; i < leaves.size(); i++) {
