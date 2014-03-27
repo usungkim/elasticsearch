@@ -46,17 +46,17 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
     private final FieldMapper.Names fieldNames;
     private final Atomic[] atomicReaders;
     private final long memorySizeInBytes;
-    private final long numGlobalOrdinals;
+    private final long maxGlobalOrdinal;
 
     public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
         super(index, settings);
         this.fieldNames = fieldNames;
+        this.maxGlobalOrdinal = higestGlobalOrdinal + 1;
         this.atomicReaders = new Atomic[segmentAfd.length];
         for (int i = 0; i < segmentAfd.length; i++) {
-            atomicReaders[i] = new Atomic(segmentAfd[i], globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrds[i]);
+            atomicReaders[i] = new Atomic(segmentAfd[i], globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrds[i], maxGlobalOrdinal);
         }
         this.memorySizeInBytes = memorySizeInBytes;
-        this.numGlobalOrdinals = higestGlobalOrdinal + 1;
     }
 
     @Override
@@ -109,23 +109,20 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
         return memorySizeInBytes;
     }
 
-    // TODO: Useful statistic?
-    public long getNumGlobalOrdinals() {
-        return numGlobalOrdinals;
-    }
-
     private final class Atomic implements AtomicFieldData.WithOrdinals {
 
+        private final long maxOrd;
         private final AtomicFieldData.WithOrdinals afd;
         private final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
         private final AppendingPackedLongBuffer globalOrdToFirstSegment;
         private final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd;
 
-        private Atomic(WithOrdinals afd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup) {
+        private Atomic(WithOrdinals afd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long maxOrd) {
             this.afd = afd;
             this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
             this.globalOrdToFirstSegment = globalOrdToFirstSegment;
             this.globalOrdToFirstSegmentOrd = globalOrdToFirstSegmentOrd;
+            this.maxOrd = maxOrd;
         }
 
         @Override
@@ -135,9 +132,9 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
             Ordinals.Docs wrapper;
             // TODO: Think harder how nicely inject BigArrays here...
             if (actual.getMaxOrd() < 512 && SearchContext.current() != null) { // TODO: Maybe for small segments, we should not use global ord cache?
-                wrapper = new Caching(actual, segmentOrdToGlobalOrdLookup);
+                wrapper = new Caching(actual, segmentOrdToGlobalOrdLookup, maxOrd);
             } else {
-                wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(actual, segmentOrdToGlobalOrdLookup);
+                wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(actual, segmentOrdToGlobalOrdLookup, maxOrd);
             }
             return new BytesValues.WithOrdinals(wrapper) {
 
@@ -201,13 +198,15 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
         private class SegmentOrdinalsToGlobalOrdinalsWrapper implements Ordinals.Docs {
 
             protected final Ordinals.Docs segmentOrdinals;
+            protected final long maxOrd;
             private final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
 
             protected long currentGlobalOrd;
 
-            private SegmentOrdinalsToGlobalOrdinalsWrapper(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup) {
+            private SegmentOrdinalsToGlobalOrdinalsWrapper(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long maxOrd) {
                 this.segmentOrdinals = segmentOrdinals;
                 this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
+                this.maxOrd = maxOrd;
             }
 
             @Override
@@ -252,12 +251,12 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
 
             @Override
             public long getNumOrds() {
-                return segmentOrdinals.getNumOrds();
+                return maxOrd - Ordinals.MIN_ORDINAL;
             }
 
             @Override
             public long getMaxOrd() {
-                return segmentOrdinals.getMaxOrd();
+                return maxOrd;
             }
 
             @Override
@@ -301,9 +300,8 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
 
             private final LongArray globalOrdinalCache;
 
-            private Caching(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup) {
-                super(segmentOrdinals, segmentOrdToGlobalOrdLookup);
-                long maxOrd = segmentOrdinals.getMaxOrd();
+            private Caching(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long maxOrd) {
+                super(segmentOrdinals, segmentOrdToGlobalOrdLookup, maxOrd);
                 this.globalOrdinalCache = SearchContext.current().bigArrays().newLongArray(maxOrd, false);
                 globalOrdinalCache.fill(0, maxOrd, -1L);
             }
