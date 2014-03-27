@@ -55,10 +55,13 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
         assert indexReader.leaves().size() > 1;
         long startTime = System.currentTimeMillis();
 
-        final float acceptableOverheadRatio = settings.getAsFloat("acceptable_overhead_ratio", PackedInts.FASTEST);
-        final AppendingPackedLongBuffer globalOrdToFirstSegment = new AppendingPackedLongBuffer(acceptableOverheadRatio);
+        // It makes sense to make the overhead ratio configurable for the mapping from segment ords to global ords
+        // However, other mappings are never the bottleneck and only used to get the original value from an ord, so
+        // it makes sense to force COMPACT for them
+        final float acceptableOverheadRatio = settings.getAsFloat("acceptable_overhead_ratio", PackedInts.FAST);
+        final AppendingPackedLongBuffer globalOrdToFirstSegment = new AppendingPackedLongBuffer(PackedInts.COMPACT);
         globalOrdToFirstSegment.add(0);
-        final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd = new MonotonicAppendingLongBuffer(acceptableOverheadRatio);
+        final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd = new MonotonicAppendingLongBuffer(PackedInts.COMPACT);
         globalOrdToFirstSegmentOrd.add(0);
         final MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrdLookups = new MonotonicAppendingLongBuffer[indexReader.leaves().size()];
         for (int i = 0; i < segmentOrdToGlobalOrdLookups.length; i++) {
