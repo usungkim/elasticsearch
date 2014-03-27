@@ -52,6 +52,7 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
 
     @Override
     public IndexFieldData.WithOrdinals build(final IndexReader indexReader, IndexFieldData.WithOrdinals indexFieldData, Settings settings, CircuitBreakerService breakerService) throws IOException {
+        assert indexReader.leaves().size() > 1;
         long startTime = System.currentTimeMillis();
 
         final float acceptableOverheadRatio = settings.getAsFloat("acceptable_overhead_ratio", PackedInts.FASTEST);

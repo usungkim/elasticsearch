@@ -68,6 +68,10 @@ public class SortedSetDVBytesIndexFieldData extends DocValuesIndexFieldData impl
 
     @Override
     public WithOrdinals loadGlobal(IndexReader indexReader) {
+        if (indexReader.leaves().size() <= 1) {
+            // ordinals are already global
+            return this;
+        }
         try {
             return cache.load(indexReader, this);
         } catch (Throwable e) {
