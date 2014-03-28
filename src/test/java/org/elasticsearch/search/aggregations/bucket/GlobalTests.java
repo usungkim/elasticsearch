@@ -43,7 +43,7 @@ import static org.hamcrest.core.IsNull.notNullValue;
  */
 public class GlobalTests extends ElasticsearchSharedIntegrationTest {
 
-    int numDocs;
+    static int numDocs;
 
     @Override
     public void beforeTestStarts() throws Exception {
