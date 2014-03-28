@@ -27,7 +27,6 @@ import java.io.IOException;
 @AbstractRandomizedTest.IntegrationTests
 public abstract class ElasticsearchSharedIntegrationTest extends ElasticsearchIntegrationTestBase {
     private static ElasticsearchSharedIntegrationTest INSTANCE = null;
-    private static final Object LOCK = new Object();
 
     @AfterClass
     public static void shutDown() throws IOException {
@@ -40,20 +39,21 @@ public abstract class ElasticsearchSharedIntegrationTest extends ElasticsearchIn
         }
 
     }
-    @Before
-    public final void before() throws Exception {
-        if (INSTANCE == null) {
-            INSTANCE = this;
-            boolean success = false;
-            try {
-                beforeInternal();
-                beforeTestStarts();
-                success = true;
-            } finally {
-               if (!success) {
-                   shutDown();
-               }
-            }
+
+    @BeforeClass
+    public final static void before() throws Exception {
+        assert INSTANCE == null;
+        // note we need to do this this way to make sure this is reproducible
+        INSTANCE = (ElasticsearchSharedIntegrationTest) getContext().getTargetClass().newInstance();
+        boolean success = false;
+        try {
+            INSTANCE.beforeInternal();
+            INSTANCE.beforeTestStarts();
+            success = true;
+        } finally {
+           if (!success) {
+               shutDown();
+           }
         }
     }
 
