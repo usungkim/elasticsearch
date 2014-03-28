@@ -27,9 +27,8 @@ import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.metrics.max.Max;
 import org.elasticsearch.search.aggregations.metrics.stats.Stats;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -47,18 +46,18 @@ import static org.hamcrest.core.IsNull.notNullValue;
 /**
  *
  */
-public class HistogramTests extends ElasticsearchIntegrationTest {
+public class HistogramTests extends ElasticsearchSharedIntegrationTest {
 
     private static final String SINGLE_VALUED_FIELD_NAME = "l_value";
     private static final String MULTI_VALUED_FIELD_NAME = "l_values";
 
-    int numDocs;
-    int interval;
-    int numValueBuckets, numValuesBuckets;
-    long[] valueCounts, valuesCounts;
+    static int numDocs;
+    static int interval;
+    static int numValueBuckets, numValuesBuckets;
+    static long[] valueCounts, valuesCounts;
 
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void beforeTestStarts() throws Exception {
         createIndex("idx");
         createIndex("idx_unmapped");
 
@@ -790,6 +789,7 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
 
     @Test
     public void emptyAggregation() throws Exception {
+        cluster().wipeIndices("empty_bucket_idx");
         prepareCreate("empty_bucket_idx").addMapping("type", SINGLE_VALUED_FIELD_NAME, "type=integer").execute().actionGet();
         List<IndexRequestBuilder> builders = new ArrayList<>();
         for (int i = 0; i < 2; i++) {

@@ -25,9 +25,8 @@ import org.elasticsearch.search.aggregations.bucket.range.Range;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.metrics.avg.Avg;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -44,15 +43,15 @@ import static org.hamcrest.core.IsNull.notNullValue;
 /**
  *
  */
-public class RangeTests extends ElasticsearchIntegrationTest {
+public class RangeTests extends ElasticsearchSharedIntegrationTest {
 
     private static final String SINGLE_VALUED_FIELD_NAME = "l_value";
     private static final String MULTI_VALUED_FIELD_NAME = "l_values";
 
-    int numDocs;
+    static int numDocs;
 
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void beforeTestStarts() throws Exception {
         createIndex("idx");
         numDocs = randomIntBetween(10, 20);
         IndexRequestBuilder[] builders = new IndexRequestBuilder[numDocs];

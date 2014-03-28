@@ -27,8 +27,7 @@ import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.aggregations.bucket.significant.SignificantTerms;
 import org.elasticsearch.search.aggregations.bucket.significant.SignificantTerms.Bucket;
 import org.elasticsearch.search.aggregations.bucket.significant.SignificantTermsBuilder;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.junit.Before;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -41,7 +40,7 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  *
  */
-public class SignificantTermsTests extends ElasticsearchIntegrationTest {
+public class SignificantTermsTests extends ElasticsearchSharedIntegrationTest {
 
     @Override
     public Settings indexSettings() {
@@ -55,8 +54,8 @@ public class SignificantTermsTests extends ElasticsearchIntegrationTest {
     public static final int OTHER_CATEGORY=2;
     public static final int SNOWBOARDING_CATEGORY=3;
     
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void beforeTestStarts() throws Exception {
         assertAcked(prepareCreate("test").setSettings(SETTING_NUMBER_OF_SHARDS, 5, SETTING_NUMBER_OF_REPLICAS, 0).addMapping("fact",
                 "_routing", "required=true,path=routing_id", "routing_id", "type=string,index=not_analyzed", "fact_category",
                 "type=integer,index=not_analyzed", "description", "type=string,index=analyzed"));

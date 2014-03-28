@@ -56,6 +56,7 @@ public class LongTermsTests extends ElasticsearchSharedIntegrationTest {
     private static final String SINGLE_VALUED_FIELD_NAME = "l_value";
     private static final String MULTI_VALUED_FIELD_NAME = "l_values";
 
+    @Override
     public void beforeTestStarts() throws Exception {
         createIndex("idx");
         IndexRequestBuilder[] lowCardBuilders = new IndexRequestBuilder[NUM_DOCS];

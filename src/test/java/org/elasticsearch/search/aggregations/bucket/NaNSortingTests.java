@@ -28,15 +28,14 @@ import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.metrics.MetricsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.avg.Avg;
 import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.junit.Before;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.junit.Test;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.search.aggregations.AggregationBuilders.*;
 import static org.hamcrest.core.IsNull.notNullValue;
 
-public class NaNSortingTests extends ElasticsearchIntegrationTest {
+public class NaNSortingTests extends ElasticsearchSharedIntegrationTest {
 
     private enum SubAggregation {
         AVG("avg") {
@@ -93,8 +92,8 @@ public class NaNSortingTests extends ElasticsearchIntegrationTest {
         public abstract double getValue(Aggregation aggregation);
     }
 
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void beforeTestStarts() throws Exception {
         createIndex("idx");
         final int numDocs = randomIntBetween(2, 10);
         for (int i = 0; i < numDocs; ++i) {

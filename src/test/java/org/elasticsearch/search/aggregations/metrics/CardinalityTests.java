@@ -25,8 +25,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.metrics.cardinality.Cardinality;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.junit.Before;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.junit.Test;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -37,7 +36,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.IsNull.notNullValue;
 
-public class CardinalityTests extends ElasticsearchIntegrationTest {
+public class CardinalityTests extends ElasticsearchSharedIntegrationTest {
 
     @Override
     public Settings indexSettings() {
@@ -47,11 +46,11 @@ public class CardinalityTests extends ElasticsearchIntegrationTest {
                 .build();
     }
 
-    long numDocs;
-    long precisionThreshold;
+    static long numDocs;
+    static long precisionThreshold;
 
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void beforeTestStarts() throws Exception {
 
         prepareCreate("idx").addMapping("type",
                 jsonBuilder().startObject().startObject("type").startObject("properties")
