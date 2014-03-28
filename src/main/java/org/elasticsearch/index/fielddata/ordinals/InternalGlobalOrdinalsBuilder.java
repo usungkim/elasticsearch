@@ -101,7 +101,7 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
     }
 
     private OrdinalMappingBuilder resolveEnumBuilder(Settings settings, float acceptableOverheadRatio, int numSegments) {
-        String ordinalMappingType = settings.get("ordinal_mapping_type", "compressed");
+        String ordinalMappingType = settings.get("index.ordinal_mapping_type", "compressed");
         if ("compressed".equals(ordinalMappingType)) {
             return new CompressedOrdinalMappingBuilder(numSegments, acceptableOverheadRatio);
         } else if ("plain".equals(ordinalMappingType)) {
@@ -168,9 +168,8 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
         }
 
         public void onOrdinal(int readerIndex, long globalOrdinal) {
-            long[] segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookups[readerIndex];
-            ArrayUtil.grow(segmentOrdToGlobalOrdLookup, segmentOrdToGlobalOrdLookupsCounter[readerIndex]);
-            segmentOrdToGlobalOrdLookup[segmentOrdToGlobalOrdLookupsCounter[readerIndex]++] = globalOrdinal;
+            segmentOrdToGlobalOrdLookups[readerIndex] = ArrayUtil.grow(segmentOrdToGlobalOrdLookups[readerIndex], segmentOrdToGlobalOrdLookupsCounter[readerIndex] + 1);
+            segmentOrdToGlobalOrdLookups[readerIndex][segmentOrdToGlobalOrdLookupsCounter[readerIndex]++] = globalOrdinal;
         }
 
         public LongValues[] build() {
@@ -183,7 +182,7 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
                         return segmentOrdToGlobalOrdLookup[((int) index)];
                     }
                 };
-                memorySizeInBytesCounter += segmentOrdToGlobalOrdLookup.length * RamUsageEstimator.NUM_BYTES_LONG + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+                memorySizeInBytesCounter += (segmentOrdToGlobalOrdLookup.length * RamUsageEstimator.NUM_BYTES_LONG) + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
             }
             return result;
         }
