@@ -292,15 +292,7 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
     }
 
     @Test
-    public void singleValuedField_OrderedBySubAggregation() throws Exception {
-        singleValuedField_OrderedBySubAggregationAsc();
-        singleValuedField_OrderedBySubAggregationDesc();
-        singleValuedField_OrderedByMultiValuedSubAggregationAsc_Inherited();
-        singleValuedField_OrderedByMultiValuedSubAggregationDesc();
-        singleValuedField_OrderedBySubAggregationDesc_DeepOrderPath();
-    }
-
-    private void singleValuedField_OrderedBySubAggregationAsc() throws Exception {
+    public void singleValuedField_OrderedBySubAggregationAsc() throws Exception {
         SearchResponse response = client().prepareSearch("idx")
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(interval).order(Histogram.Order.aggregation("sum", true))
                         .subAggregation(sum("sum").field(SINGLE_VALUED_FIELD_NAME)))
@@ -339,7 +331,8 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    private void singleValuedField_OrderedBySubAggregationDesc() throws Exception {
+    @Test
+    public void singleValuedField_OrderedBySubAggregationDesc() throws Exception {
         SearchResponse response = client().prepareSearch("idx")
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(interval).order(Histogram.Order.aggregation("sum", false))
                         .subAggregation(sum("sum").field(SINGLE_VALUED_FIELD_NAME)))
@@ -378,7 +371,8 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    private void singleValuedField_OrderedByMultiValuedSubAggregationAsc_Inherited() throws Exception {
+    @Test
+    public void singleValuedField_OrderedByMultiValuedSubAggregationAsc_Inherited() throws Exception {
         SearchResponse response = client().prepareSearch("idx")
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(interval).order(Histogram.Order.aggregation("stats.sum", true))
                         .subAggregation(stats("stats")))
@@ -417,7 +411,8 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    private void singleValuedField_OrderedByMultiValuedSubAggregationDesc() throws Exception {
+    @Test
+    public void singleValuedField_OrderedByMultiValuedSubAggregationDesc() throws Exception {
         SearchResponse response = client().prepareSearch("idx")
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(interval).order(Histogram.Order.aggregation("stats.sum", false))
                         .subAggregation(stats("stats").field(SINGLE_VALUED_FIELD_NAME)))
@@ -456,7 +451,8 @@ public class HistogramTests extends ElasticsearchIntegrationTest {
         }
     }
 
-    private void singleValuedField_OrderedBySubAggregationDesc_DeepOrderPath() throws Exception {
+    @Test
+    public void singleValuedField_OrderedBySubAggregationDesc_DeepOrderPath() throws Exception {
         boolean asc = randomBoolean();
         SearchResponse response = client().prepareSearch("idx")
                 .addAggregation(histogram("histo").field(SINGLE_VALUED_FIELD_NAME).interval(interval).order(Histogram.Order.aggregation("filter>max", asc))
