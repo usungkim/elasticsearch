@@ -31,7 +31,6 @@ import org.apache.lucene.util.packed.MonotonicAppendingLongBuffer;
 import org.apache.lucene.util.packed.PackedInts;
 import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
@@ -49,11 +48,8 @@ import java.util.List;
  */
 public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implements GlobalOrdinalsBuilder {
 
-    private final BigArrays bigArrays;
-
-    public InternalGlobalOrdinalsBuilder(Index index, @IndexSettings Settings indexSettings, BigArrays bigArrays) {
+    public InternalGlobalOrdinalsBuilder(Index index, @IndexSettings Settings indexSettings) {
         super(index, indexSettings);
-        this.bigArrays = bigArrays;
     }
 
     @Override
@@ -105,7 +101,7 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
         if (logger.isDebugEnabled()) {
             logger.debug("Global ordinals loading for " + currentGlobalOrdinal + " values, took: " + (System.currentTimeMillis() - startTime) + " ms");
         }
-        return new GlobalOrdinalsIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), bigArrays, withOrdinals,
+        return new GlobalOrdinalsIndexFieldData(indexFieldData.index(), settings, indexFieldData.getFieldNames(), withOrdinals,
                 globalOrdToFirstSegment, globalOrdToFirstSegmentOrd, segmentOrdToGlobalOrdLookups, memorySizeInBytes,
                 currentGlobalOrdinal
         );

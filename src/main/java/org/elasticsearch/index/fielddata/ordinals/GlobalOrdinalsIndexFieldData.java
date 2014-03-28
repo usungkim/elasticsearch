@@ -24,13 +24,8 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.LongsRef;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.LongArray;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.*;
@@ -43,15 +38,13 @@ import org.elasticsearch.index.mapper.FieldMapper;
 public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent implements IndexFieldData.WithOrdinals, RamUsage {
 
     private final FieldMapper.Names fieldNames;
-    private final BigArrays bigArrays;
     private final Atomic[] atomicReaders;
     private final long memorySizeInBytes;
     private final long maxGlobalOrdinal;
 
-    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, BigArrays bigArrays, AtomicFieldData.WithOrdinals[] segmentAfd, LongValues globalOrdToFirstSegment, LongValues globalOrdToFirstSegmentOrd, LongValues[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
+    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd, LongValues globalOrdToFirstSegment, LongValues globalOrdToFirstSegmentOrd, LongValues[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
         super(index, settings);
         this.fieldNames = fieldNames;
-        this.bigArrays = bigArrays;
         this.maxGlobalOrdinal = higestGlobalOrdinal + 1;
         this.atomicReaders = new Atomic[segmentAfd.length];
         for (int i = 0; i < segmentAfd.length; i++) {
@@ -130,18 +123,8 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
         public BytesValues.WithOrdinals getBytesValues(boolean needsHashes) {
             BytesValues.WithOrdinals values = afd.getBytesValues(false);
             Ordinals.Docs actual = values.ordinals();
+            Ordinals.Docs wrapper = new GlobalOrdinalsDocs(actual, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
 
-            boolean useCaching = false;
-            if (actual.getNumOrds() > 512) {
-                useCaching = (actual.getNumDocs() / actual.getNumOrds()) <= 0.1;
-            }
-
-            Ordinals.Docs wrapper;
-            if (useCaching) {
-                wrapper = new GlobalOrdinalsDocs.WithCaching(actual, bigArrays, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
-            } else {
-                wrapper = new GlobalOrdinalsDocs(actual, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
-            }
             return new BytesValues.WithOrdinals(wrapper) {
 
                 int readerIndex;
@@ -303,59 +286,6 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
         @Override
         public long currentOrd() {
             return currentGlobalOrd;
-        }
-
-        private static final class WithCaching extends GlobalOrdinalsDocs implements Releasable {
-
-            private final LongArray globalOrdinalCache;
-
-            private WithCaching(Ordinals.Docs segmentOrdinals, BigArrays bigArrays, LongValues segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
-                super(segmentOrdinals, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
-                this.globalOrdinalCache = bigArrays.newLongArray(maxOrd, false);
-                globalOrdinalCache.fill(0, maxOrd, -1L);
-            }
-
-            @Override
-            public long getOrd(int docId) {
-                long segmentOrd = segmentOrdinals.getOrd(docId);
-                currentGlobalOrd = globalOrdinalCache.get(segmentOrd);
-                if (currentGlobalOrd < 0) {
-                    // unlikely condition on a low-cardinality field
-                    globalOrdinalCache.set(segmentOrd, currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd));
-                }
-                return currentGlobalOrd;
-            }
-
-            @Override
-            public LongsRef getOrds(int docId) {
-                LongsRef refs = segmentOrdinals.getOrds(docId);
-                for (int i = refs.offset; i < refs.length; i++) {
-                    long globalOrd = globalOrdinalCache.get(refs.longs[i]);
-                    if (currentGlobalOrd < 0) {
-                        // unlikely condition on a low-cardinality field
-                        globalOrdinalCache.set(refs.longs[i], globalOrd = segmentOrdToGlobalOrdLookup.get(refs.longs[i]));
-                    }
-                    refs.longs[i] = globalOrd;
-                }
-                return refs;
-            }
-
-            @Override
-            public long nextOrd() {
-                long segmentOrd = segmentOrdinals.nextOrd();
-                currentGlobalOrd = globalOrdinalCache.get(segmentOrd);
-                if (currentGlobalOrd < 0) {
-                    // unlikely condition on a low-cardinality field
-                    globalOrdinalCache.set(segmentOrd, currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd));
-                }
-                return currentGlobalOrd;
-            }
-
-            @Override
-            public boolean release() throws ElasticsearchException {
-                Releasables.release(globalOrdinalCache);
-                return true;
-            }
         }
     }
 }
