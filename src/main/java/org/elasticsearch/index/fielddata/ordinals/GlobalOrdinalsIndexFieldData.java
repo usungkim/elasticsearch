@@ -30,13 +30,13 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.LongArray;
 import org.elasticsearch.index.AbstractIndexComponent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.*;
 import org.elasticsearch.index.fielddata.fieldcomparator.SortMode;
 import org.elasticsearch.index.mapper.FieldMapper;
-import org.elasticsearch.search.internal.SearchContext;
 
 /**
  * {@link IndexFieldData} impl based on global ordinals.
@@ -44,13 +44,15 @@ import org.elasticsearch.search.internal.SearchContext;
 public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent implements IndexFieldData.WithOrdinals, RamUsage {
 
     private final FieldMapper.Names fieldNames;
+    private final BigArrays bigArrays;
     private final Atomic[] atomicReaders;
     private final long memorySizeInBytes;
     private final long maxGlobalOrdinal;
 
-    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
+    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, BigArrays bigArrays, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
         super(index, settings);
         this.fieldNames = fieldNames;
+        this.bigArrays = bigArrays;
         this.maxGlobalOrdinal = higestGlobalOrdinal + 1;
         this.atomicReaders = new Atomic[segmentAfd.length];
         for (int i = 0; i < segmentAfd.length; i++) {
@@ -129,12 +131,17 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
         public BytesValues.WithOrdinals getBytesValues(boolean needsHashes) {
             BytesValues.WithOrdinals values = afd.getBytesValues(false);
             Ordinals.Docs actual = values.ordinals();
+
+            boolean useCaching = false;
+            if (actual.getNumOrds() > 512) {
+                useCaching = (actual.getNumDocs() / actual.getNumOrds()) <= 0.1;
+            }
+
             Ordinals.Docs wrapper;
-            // TODO: Think harder how nicely inject BigArrays here...
-            if (actual.getMaxOrd() < 512 && SearchContext.current() != null) { // TODO: Maybe for small segments, we should not use global ord cache?
-                wrapper = new Caching(actual, segmentOrdToGlobalOrdLookup, maxOrd);
+            if (useCaching) {
+                wrapper = new GlobalOrdinalsDocs.WithCaching(actual, bigArrays, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
             } else {
-                wrapper = new SegmentOrdinalsToGlobalOrdinalsWrapper(actual, segmentOrdToGlobalOrdLookup, maxOrd);
+                wrapper = new GlobalOrdinalsDocs(actual, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
             }
             return new BytesValues.WithOrdinals(wrapper) {
 
@@ -195,114 +202,117 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
         public void close() {
         }
 
-        private class SegmentOrdinalsToGlobalOrdinalsWrapper implements Ordinals.Docs {
+    }
 
-            protected final Ordinals.Docs segmentOrdinals;
-            protected final long maxOrd;
-            private final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
+    private static class GlobalOrdinalsDocs implements Ordinals.Docs {
 
-            protected long currentGlobalOrd;
+        protected final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
+        protected final Ordinals.Docs segmentOrdinals;
+        private final long memorySizeInBytes;
+        protected final long maxOrd;
 
-            private SegmentOrdinalsToGlobalOrdinalsWrapper(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long maxOrd) {
-                this.segmentOrdinals = segmentOrdinals;
-                this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
-                this.maxOrd = maxOrd;
-            }
+        protected long currentGlobalOrd;
 
-            @Override
-            public Ordinals ordinals() {
-                return new Ordinals() {
-                    @Override
-                    public long getMemorySizeInBytes() {
-                        return GlobalOrdinalsIndexFieldData.this.getMemorySizeInBytes();
-                    }
-
-                    @Override
-                    public boolean isMultiValued() {
-                        return SegmentOrdinalsToGlobalOrdinalsWrapper.this.isMultiValued();
-                    }
-
-                    @Override
-                    public int getNumDocs() {
-                        return SegmentOrdinalsToGlobalOrdinalsWrapper.this.getNumDocs();
-                    }
-
-                    @Override
-                    public long getNumOrds() {
-                        return SegmentOrdinalsToGlobalOrdinalsWrapper.this.getNumOrds();
-                    }
-
-                    @Override
-                    public long getMaxOrd() {
-                        return SegmentOrdinalsToGlobalOrdinalsWrapper.this.getMaxOrd();
-                    }
-
-                    @Override
-                    public Docs ordinals() {
-                        return SegmentOrdinalsToGlobalOrdinalsWrapper.this;
-                    }
-                };
-            }
-
-            @Override
-            public int getNumDocs() {
-                return segmentOrdinals.getNumDocs();
-            }
-
-            @Override
-            public long getNumOrds() {
-                return maxOrd - Ordinals.MIN_ORDINAL;
-            }
-
-            @Override
-            public long getMaxOrd() {
-                return maxOrd;
-            }
-
-            @Override
-            public boolean isMultiValued() {
-                return segmentOrdinals.isMultiValued();
-            }
-
-            @Override
-            public long getOrd(int docId) {
-                long segmentOrd = segmentOrdinals.getOrd(docId);
-                return currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
-            }
-
-            @Override
-            public LongsRef getOrds(int docId) {
-                LongsRef refs = segmentOrdinals.getOrds(docId);
-                for (int i = refs.offset; i < refs.length; i++) {
-                    refs.longs[i] = segmentOrdToGlobalOrdLookup.get(refs.longs[i]);
-                }
-                return refs;
-            }
-
-            @Override
-            public long nextOrd() {
-                long segmentOrd = segmentOrdinals.nextOrd();
-                return currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
-            }
-
-            @Override
-            public int setDocument(int docId) {
-                return segmentOrdinals.setDocument(docId);
-            }
-
-            @Override
-            public long currentOrd() {
-                return currentGlobalOrd;
-            }
+        private GlobalOrdinalsDocs(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
+            this.segmentOrdinals = segmentOrdinals;
+            this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
+            this.memorySizeInBytes = memorySizeInBytes;
+            this.maxOrd = maxOrd;
         }
 
-        private final class Caching extends SegmentOrdinalsToGlobalOrdinalsWrapper implements Releasable {
+        @Override
+        public Ordinals ordinals() {
+            return new Ordinals() {
+                @Override
+                public long getMemorySizeInBytes() {
+                    return memorySizeInBytes;
+                }
+
+                @Override
+                public boolean isMultiValued() {
+                    return GlobalOrdinalsDocs.this.isMultiValued();
+                }
+
+                @Override
+                public int getNumDocs() {
+                    return GlobalOrdinalsDocs.this.getNumDocs();
+                }
+
+                @Override
+                public long getNumOrds() {
+                    return GlobalOrdinalsDocs.this.getNumOrds();
+                }
+
+                @Override
+                public long getMaxOrd() {
+                    return GlobalOrdinalsDocs.this.getMaxOrd();
+                }
+
+                @Override
+                public Docs ordinals() {
+                    return GlobalOrdinalsDocs.this;
+                }
+            };
+        }
+
+        @Override
+        public int getNumDocs() {
+            return segmentOrdinals.getNumDocs();
+        }
+
+        @Override
+        public long getNumOrds() {
+            return maxOrd - Ordinals.MIN_ORDINAL;
+        }
+
+        @Override
+        public long getMaxOrd() {
+            return maxOrd;
+        }
+
+        @Override
+        public boolean isMultiValued() {
+            return segmentOrdinals.isMultiValued();
+        }
+
+        @Override
+        public long getOrd(int docId) {
+            long segmentOrd = segmentOrdinals.getOrd(docId);
+            return currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
+        }
+
+        @Override
+        public LongsRef getOrds(int docId) {
+            LongsRef refs = segmentOrdinals.getOrds(docId);
+            for (int i = refs.offset; i < refs.length; i++) {
+                refs.longs[i] = segmentOrdToGlobalOrdLookup.get(refs.longs[i]);
+            }
+            return refs;
+        }
+
+        @Override
+        public long nextOrd() {
+            long segmentOrd = segmentOrdinals.nextOrd();
+            return currentGlobalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
+        }
+
+        @Override
+        public int setDocument(int docId) {
+            return segmentOrdinals.setDocument(docId);
+        }
+
+        @Override
+        public long currentOrd() {
+            return currentGlobalOrd;
+        }
+
+        private static final class WithCaching extends GlobalOrdinalsDocs implements Releasable {
 
             private final LongArray globalOrdinalCache;
 
-            private Caching(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long maxOrd) {
-                super(segmentOrdinals, segmentOrdToGlobalOrdLookup, maxOrd);
-                this.globalOrdinalCache = SearchContext.current().bigArrays().newLongArray(maxOrd, false);
+            private WithCaching(Ordinals.Docs segmentOrdinals, BigArrays bigArrays, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
+                super(segmentOrdinals, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
+                this.globalOrdinalCache = bigArrays.newLongArray(maxOrd, false);
                 globalOrdinalCache.fill(0, maxOrd, -1L);
             }
 
