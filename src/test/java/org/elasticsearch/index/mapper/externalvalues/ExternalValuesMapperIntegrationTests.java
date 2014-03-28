@@ -28,6 +28,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 /**
  */
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE)
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.SUITE)
 public class ExternalValuesMapperIntegrationTests extends ElasticsearchIntegrationTest {
 
     @Override

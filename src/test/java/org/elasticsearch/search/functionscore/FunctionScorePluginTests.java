@@ -43,8 +43,8 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 import static org.elasticsearch.search.builder.SearchSourceBuilder.searchSource;
-import static org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import static org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import static org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import static org.elasticsearch.test.ElasticsearchIntegrationTestBase.Scope;
 import static org.hamcrest.Matchers.equalTo;
 
 /**

@@ -19,26 +19,45 @@
 package org.elasticsearch.test;
 
 import org.apache.lucene.util.AbstractRandomizedTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.*;
 
 import java.io.IOException;
 
 @Ignore
 @AbstractRandomizedTest.IntegrationTests
-public abstract class ElasticsearchIntegrationTest extends ElasticsearchIntegrationTestBase {
+public abstract class ElasticsearchSharedIntegrationTest extends ElasticsearchIntegrationTestBase {
+    private static ElasticsearchSharedIntegrationTest INSTANCE = null;
+    private static final Object LOCK = new Object();
 
+    @AfterClass
+    public static void shutDown() throws IOException {
+        if (INSTANCE != null) {
+            try {
+                INSTANCE.afterInternal();
+            } finally {
+                INSTANCE = null;
+            }
+        }
+
+    }
     @Before
-    public final void before() throws IOException {
-        beforeInternal();
+    public final void before() throws Exception {
+        if (INSTANCE == null) {
+            INSTANCE = this;
+            boolean success = false;
+            try {
+                beforeInternal();
+                beforeTestStarts();
+                success = true;
+            } finally {
+               if (!success) {
+                   shutDown();
+               }
+            }
+        }
     }
 
-
-    @After
-    public final void after() throws IOException {
-        afterInternal();
-    }
+    protected abstract void beforeTestStarts() throws Exception;
 
 
 }

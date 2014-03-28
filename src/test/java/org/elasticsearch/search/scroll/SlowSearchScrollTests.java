@@ -25,11 +25,12 @@ import org.elasticsearch.action.search.type.ParsedScrollId;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 
 /**
  */
 @LuceneTestCase.Slow
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE)
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.SUITE)
 public class SlowSearchScrollTests extends SearchScrollTests {
 
     private final Version[] versions = new Version[]{

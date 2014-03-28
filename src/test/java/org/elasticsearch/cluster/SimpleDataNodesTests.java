@@ -24,8 +24,8 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import static org.elasticsearch.client.Requests.createIndexRequest;
@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  *
  */
-@ClusterScope(scope=Scope.TEST, numNodes=0)
+@ClusterScope(scope= ElasticsearchIntegrationTestBase.Scope.TEST, numNodes=0)
 public class SimpleDataNodesTests extends ElasticsearchIntegrationTest {
 
     @Test

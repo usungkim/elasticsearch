@@ -26,8 +26,8 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutionException;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 
-@ClusterScope(scope = Scope.SUITE, numNodes = 3)
+@ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.SUITE, numNodes = 3)
 public class ScriptFieldTests extends ElasticsearchIntegrationTest {
 
     @Override

@@ -23,10 +23,9 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.hamcrest.ElasticsearchAssertions;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,7 +41,7 @@ import static org.hamcrest.Matchers.is;
 /**
  * Full integration test of the template query plugin.
  * */
-@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTest.Scope.SUITE)
+@ElasticsearchIntegrationTest.ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.SUITE)
 public class TemplateQueryTest extends ElasticsearchIntegrationTest {
 
     @Before

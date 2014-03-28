@@ -27,8 +27,8 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.rest.helper.HttpClient;
 import org.elasticsearch.rest.helper.HttpClientResponse;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import java.util.Map;
@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * Test a rest action that sets special response headers
  */
-@ClusterScope(scope = Scope.SUITE, numNodes = 1)
+@ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.SUITE, numNodes = 1)
 public class ResponseHeaderPluginTests extends ElasticsearchIntegrationTest {
 
     @Override

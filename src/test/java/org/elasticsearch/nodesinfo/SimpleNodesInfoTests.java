@@ -34,8 +34,8 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.nodesinfo.plugin.dummy1.TestPlugin;
 import org.elasticsearch.nodesinfo.plugin.dummy2.TestNoVersionPlugin;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import java.io.File;
@@ -54,7 +54,7 @@ import static org.hamcrest.Matchers.*;
 /**
  *
  */
-@ClusterScope(scope=Scope.TEST, numNodes=0)
+@ClusterScope(scope= ElasticsearchIntegrationTestBase.Scope.TEST, numNodes=0)
 public class SimpleNodesInfoTests extends ElasticsearchIntegrationTest {
 
     static final class Fields {

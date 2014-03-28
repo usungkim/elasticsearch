@@ -39,8 +39,8 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.routing.allocation.decider.DisableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_DISABLE_ALLOCATION;
 import static org.elasticsearch.common.settings.ImmutableSettings.builder;
 import static org.elasticsearch.index.shard.IndexShardState.*;
-import static org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import static org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import static org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import static org.elasticsearch.test.ElasticsearchIntegrationTestBase.Scope;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
 @ClusterScope(scope = Scope.TEST, numNodes = 0)

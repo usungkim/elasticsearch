@@ -23,8 +23,8 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.is;
 /**
  * Scoped as test, because the if the test with cluster read only block fails, all other tests fail as well, as this is not cleaned up properly
  */
-@ClusterScope(scope=Scope.TEST)
+@ClusterScope(scope= ElasticsearchIntegrationTestBase.Scope.TEST)
 public class BlockClusterStatsTests extends ElasticsearchIntegrationTest {
 
     @Test

@@ -28,8 +28,8 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.greaterThan;
 
 /**
  */
-@ClusterScope(scope=Scope.TEST, numNodes=0)
+@ClusterScope(scope= ElasticsearchIntegrationTestBase.Scope.TEST, numNodes=0)
 public class NoMasterNodeTests extends ElasticsearchIntegrationTest {
 
     @Test

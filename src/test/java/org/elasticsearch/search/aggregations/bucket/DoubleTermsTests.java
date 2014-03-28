@@ -31,10 +31,9 @@ import org.elasticsearch.search.aggregations.metrics.max.Max;
 import org.elasticsearch.search.aggregations.metrics.stats.Stats;
 import org.elasticsearch.search.aggregations.metrics.stats.extended.ExtendedStats;
 import org.elasticsearch.search.aggregations.metrics.sum.Sum;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.elasticsearch.test.cache.recycler.MockBigArrays;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -53,14 +52,13 @@ import static org.hamcrest.core.IsNull.notNullValue;
 /**
  *
  */
-public class DoubleTermsTests extends ElasticsearchIntegrationTest {
+public class DoubleTermsTests extends ElasticsearchSharedIntegrationTest {
 
     private static final int NUM_DOCS = 5; // TODO: randomize the size?
     private static final String SINGLE_VALUED_FIELD_NAME = "d_value";
     private static final String MULTI_VALUED_FIELD_NAME = "d_values";
 
-    @Before
-    public void init() throws Exception {
+    public void beforeTestStarts() throws Exception {
         createIndex("idx");
 
         IndexRequestBuilder[] lowcardBuilders = new IndexRequestBuilder[NUM_DOCS];

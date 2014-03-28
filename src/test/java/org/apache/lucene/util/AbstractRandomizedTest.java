@@ -32,7 +32,7 @@ import com.carrotsearch.randomizedtesting.rules.StaticFieldsInvariantRule;
 import com.carrotsearch.randomizedtesting.rules.SystemPropertiesInvariantRule;
 import org.apache.lucene.util.LuceneTestCase.SuppressCodecs;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
 import org.junit.After;
@@ -230,7 +230,7 @@ public abstract class AbstractRandomizedTest extends RandomizedTest {
     private final static Set<Class<?>> TOP_LEVEL_CLASSES =
             Collections.unmodifiableSet(new HashSet<Class<?>>(Arrays.asList(
                     AbstractRandomizedTest.class, LuceneTestCase.class,
-                    ElasticsearchIntegrationTest.class, ElasticsearchTestCase.class)));
+                    ElasticsearchIntegrationTestBase.class, ElasticsearchTestCase.class)));
 
     /**
      * This controls how suite-level rules are nested. It is important that _all_ rules declared

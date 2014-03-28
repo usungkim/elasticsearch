@@ -26,8 +26,8 @@ import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.Scope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 // NB: the tests uses System Properties to pass the information from different plugins (loaded in separate CLs) to the test.
 // hence the use of try/finally blocks to clean these up after the test has been executed as otherwise the test framework will trigger a failure
-@ClusterScope(scope = Scope.TEST, numNodes = 0)
+@ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.TEST, numNodes = 0)
 public class IsolatedPluginTests extends ElasticsearchIntegrationTest {
 
     private static final Settings SETTINGS;

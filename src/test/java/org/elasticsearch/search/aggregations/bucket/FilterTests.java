@@ -24,9 +24,8 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.search.aggregations.bucket.filter.Filter;
 import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
 import org.elasticsearch.search.aggregations.metrics.avg.Avg;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.elasticsearch.test.ElasticsearchSharedIntegrationTest;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -45,12 +44,12 @@ import static org.hamcrest.core.IsNull.notNullValue;
 /**
  *
  */
-public class FilterTests extends ElasticsearchIntegrationTest {
+public class FilterTests extends ElasticsearchSharedIntegrationTest {
 
-    int numDocs, numTag1Docs;
+    static int numDocs, numTag1Docs;
 
-    @Before
-    public void init() throws Exception {
+    @Override
+    public void beforeTestStarts() throws Exception {
         createIndex("idx");
         createIndex("idx2");
         numDocs = randomIntBetween(5, 20);

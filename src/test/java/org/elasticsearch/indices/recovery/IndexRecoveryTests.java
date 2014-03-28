@@ -21,7 +21,6 @@ package org.elasticsearch.indices.recovery;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -32,8 +31,9 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.elasticsearch.test.ElasticsearchIntegrationTest.ClusterScope;
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase.ClusterScope;
 
+import org.elasticsearch.test.ElasticsearchIntegrationTestBase;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -48,7 +48,7 @@ import static org.hamcrest.Matchers.greaterThan;
 /**
  *
  */
-@ClusterScope(scope = ElasticsearchIntegrationTest.Scope.TEST, numNodes = 0)
+@ClusterScope(scope = ElasticsearchIntegrationTestBase.Scope.TEST, numNodes = 0)
 public class IndexRecoveryTests extends ElasticsearchIntegrationTest {
 
     private static final String INDEX_NAME = "test-idx-1";
