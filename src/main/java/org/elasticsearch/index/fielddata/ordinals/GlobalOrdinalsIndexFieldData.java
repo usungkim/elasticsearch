@@ -22,9 +22,8 @@ import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.LongsRef;
-import org.apache.lucene.util.packed.AppendingPackedLongBuffer;
-import org.apache.lucene.util.packed.MonotonicAppendingLongBuffer;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
@@ -49,7 +48,7 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
     private final long memorySizeInBytes;
     private final long maxGlobalOrdinal;
 
-    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, BigArrays bigArrays, AtomicFieldData.WithOrdinals[] segmentAfd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
+    public GlobalOrdinalsIndexFieldData(Index index, Settings settings, FieldMapper.Names fieldNames, BigArrays bigArrays, AtomicFieldData.WithOrdinals[] segmentAfd, LongValues globalOrdToFirstSegment, LongValues globalOrdToFirstSegmentOrd, LongValues[] segmentOrdToGlobalOrds, long memorySizeInBytes, long higestGlobalOrdinal) {
         super(index, settings);
         this.fieldNames = fieldNames;
         this.bigArrays = bigArrays;
@@ -115,11 +114,11 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
 
         private final long maxOrd;
         private final AtomicFieldData.WithOrdinals afd;
-        private final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
-        private final AppendingPackedLongBuffer globalOrdToFirstSegment;
-        private final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd;
+        private final LongValues segmentOrdToGlobalOrdLookup;
+        private final LongValues globalOrdToFirstSegment;
+        private final LongValues globalOrdToFirstSegmentOrd;
 
-        private Atomic(WithOrdinals afd, AppendingPackedLongBuffer globalOrdToFirstSegment, MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long maxOrd) {
+        private Atomic(WithOrdinals afd, LongValues globalOrdToFirstSegment, LongValues globalOrdToFirstSegmentOrd, LongValues segmentOrdToGlobalOrdLookup, long maxOrd) {
             this.afd = afd;
             this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
             this.globalOrdToFirstSegment = globalOrdToFirstSegment;
@@ -206,14 +205,14 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
 
     private static class GlobalOrdinalsDocs implements Ordinals.Docs {
 
-        protected final MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup;
+        protected final LongValues segmentOrdToGlobalOrdLookup;
         protected final Ordinals.Docs segmentOrdinals;
         private final long memorySizeInBytes;
         protected final long maxOrd;
 
         protected long currentGlobalOrd;
 
-        private GlobalOrdinalsDocs(Ordinals.Docs segmentOrdinals, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
+        private GlobalOrdinalsDocs(Ordinals.Docs segmentOrdinals, LongValues segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
             this.segmentOrdinals = segmentOrdinals;
             this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
             this.memorySizeInBytes = memorySizeInBytes;
@@ -310,7 +309,7 @@ public final class GlobalOrdinalsIndexFieldData extends AbstractIndexComponent i
 
             private final LongArray globalOrdinalCache;
 
-            private WithCaching(Ordinals.Docs segmentOrdinals, BigArrays bigArrays, MonotonicAppendingLongBuffer segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
+            private WithCaching(Ordinals.Docs segmentOrdinals, BigArrays bigArrays, LongValues segmentOrdToGlobalOrdLookup, long memorySizeInBytes, long maxOrd) {
                 super(segmentOrdinals, segmentOrdToGlobalOrdLookup, memorySizeInBytes, maxOrd);
                 this.globalOrdinalCache = bigArrays.newLongArray(maxOrd, false);
                 globalOrdinalCache.fill(0, maxOrd, -1L);
