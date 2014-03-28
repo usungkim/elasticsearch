@@ -303,7 +303,7 @@ public class RelocationTests extends ElasticsearchIntegrationTest {
         final AtomicBoolean stop = new AtomicBoolean(false);
         Thread[] writers = new Thread[numberOfWriters];
         final CountDownLatch stopLatch = new CountDownLatch(writers.length);
-        final CountDownLatch startLatch = new CountDownLatch(writers.length);
+        final CountDownLatch startLatch = new CountDownLatch(1);
         logger.info("--> starting {} indexing threads", writers.length);
         for (int i = 0; i < writers.length; i++) {
             final Client perThreadClient = client();
