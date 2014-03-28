@@ -23,9 +23,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefIterator;
-import org.apache.lucene.util.LongValues;
+import org.apache.lucene.util.*;
 import org.apache.lucene.util.packed.AppendingPackedLongBuffer;
 import org.apache.lucene.util.packed.MonotonicAppendingLongBuffer;
 import org.apache.lucene.util.packed.PackedInts;
@@ -66,14 +64,9 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
         final MonotonicAppendingLongBuffer globalOrdToFirstSegmentOrd = new MonotonicAppendingLongBuffer(PackedInts.COMPACT);
         globalOrdToFirstSegmentOrd.add(0);
 
-        // TODO: add enum
-        String ordinalMappingType = settings.get("ordinal_mapping_type", "compressed");
-        final OrdinalMappingBuilder ordinalMappingBuilder;
-        if ("compressed".equals(ordinalMappingType)) {
-            ordinalMappingBuilder = new CompressedBuilder(indexReader.leaves().size(), acceptableOverheadRatio);
-        } else {
-            throw new ElasticsearchIllegalArgumentException("Unsupported ordinal mapping type " + ordinalMappingType);
-        }
+        OrdinalMappingBuilder ordinalMappingBuilder = resolveEnumBuilder(
+                settings, acceptableOverheadRatio, indexReader.leaves().size()
+        );
 
         long currentGlobalOrdinal = 0;
         final AtomicFieldData.WithOrdinals[] withOrdinals = new AtomicFieldData.WithOrdinals[indexReader.leaves().size()];
@@ -107,6 +100,17 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
         );
     }
 
+    private OrdinalMappingBuilder resolveEnumBuilder(Settings settings, float acceptableOverheadRatio, int numSegments) {
+        String ordinalMappingType = settings.get("ordinal_mapping_type", "compressed");
+        if ("compressed".equals(ordinalMappingType)) {
+            return new CompressedOrdinalMappingBuilder(numSegments, acceptableOverheadRatio);
+        } else if ("plain".equals(ordinalMappingType)) {
+            return new PlainArrayOrdinalMappingBuilder(numSegments);
+        } else {
+            throw new ElasticsearchIllegalArgumentException("Unsupported ordinal mapping type " + ordinalMappingType);
+        }
+    }
+
     private interface OrdinalMappingBuilder {
 
         void onOrdinal(int readerIndex, long globalOrdinal);
@@ -117,12 +121,12 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
 
     }
 
-    private class CompressedBuilder implements OrdinalMappingBuilder {
+    private class CompressedOrdinalMappingBuilder implements OrdinalMappingBuilder {
 
         final MonotonicAppendingLongBuffer[] segmentOrdToGlobalOrdLookups;
         long memorySizeInBytesCounter;
 
-        private CompressedBuilder(int numSegments, float acceptableOverheadRatio) {
+        private CompressedOrdinalMappingBuilder(int numSegments, float acceptableOverheadRatio) {
             segmentOrdToGlobalOrdLookups = new MonotonicAppendingLongBuffer[numSegments];
             for (int i = 0; i < segmentOrdToGlobalOrdLookups.length; i++) {
                 segmentOrdToGlobalOrdLookups[i] = new MonotonicAppendingLongBuffer(acceptableOverheadRatio);
@@ -140,6 +144,48 @@ public class InternalGlobalOrdinalsBuilder extends AbstractIndexComponent implem
                 memorySizeInBytesCounter += segmentOrdToGlobalOrdLookup.ramBytesUsed();
             }
             return segmentOrdToGlobalOrdLookups;
+        }
+
+        public long getMemorySizeInBytes() {
+            return memorySizeInBytesCounter;
+        }
+
+    }
+
+    private class PlainArrayOrdinalMappingBuilder implements OrdinalMappingBuilder {
+
+        final long[][] segmentOrdToGlobalOrdLookups;
+        final int[] segmentOrdToGlobalOrdLookupsCounter;
+        long memorySizeInBytesCounter;
+
+        private PlainArrayOrdinalMappingBuilder(int numSegments) {
+            segmentOrdToGlobalOrdLookups = new long[numSegments][];
+            segmentOrdToGlobalOrdLookupsCounter = new int[numSegments];
+            for (int i = 0; i < segmentOrdToGlobalOrdLookups.length; i++) {
+                segmentOrdToGlobalOrdLookups[i] = new long[32];
+                segmentOrdToGlobalOrdLookupsCounter[i] = 1;
+            }
+        }
+
+        public void onOrdinal(int readerIndex, long globalOrdinal) {
+            long[] segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookups[readerIndex];
+            ArrayUtil.grow(segmentOrdToGlobalOrdLookup, segmentOrdToGlobalOrdLookupsCounter[readerIndex]);
+            segmentOrdToGlobalOrdLookup[segmentOrdToGlobalOrdLookupsCounter[readerIndex]++] = globalOrdinal;
+        }
+
+        public LongValues[] build() {
+            LongValues[] result = new LongValues[segmentOrdToGlobalOrdLookupsCounter.length];
+            for (int i = 0; i < segmentOrdToGlobalOrdLookups.length; i++) {
+                final long[] segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookups[i];
+                result[i] = new LongValues() {
+                    @Override
+                    public long get(long index) {
+                        return segmentOrdToGlobalOrdLookup[((int) index)];
+                    }
+                };
+                memorySizeInBytesCounter += segmentOrdToGlobalOrdLookup.length * RamUsageEstimator.NUM_BYTES_LONG + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+            }
+            return result;
         }
 
         public long getMemorySizeInBytes() {
