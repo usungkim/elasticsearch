@@ -90,20 +90,11 @@ public interface IndexFieldDataCache {
             if (key == null || key.listener == null) {
                 return; // we can't do anything here...
             }
+            RamUsage value = notification.getValue();
             long sizeInBytes = key.sizeInBytes;
-            Object genericValue = notification.getValue();
-            if (genericValue instanceof AtomicFieldData) {
-                AtomicFieldData value = (AtomicFieldData) genericValue;
-                if (sizeInBytes == -1 && value != null) {
-                    sizeInBytes = value.getMemorySizeInBytes();
-                }
-            } else if (genericValue instanceof GlobalOrdinalsIndexFieldData) {
-                GlobalOrdinalsIndexFieldData value = (GlobalOrdinalsIndexFieldData) genericValue;
-                if (sizeInBytes == -1 && value != null) {
-                    sizeInBytes = value.getMemorySizeInBytes();
-                }
+            if (sizeInBytes == -1 && value != null) {
+                sizeInBytes = value.getMemorySizeInBytes();
             }
-
             key.listener.onUnload(fieldNames, fieldDataType, notification.wasEvicted(), sizeInBytes);
         }
 
