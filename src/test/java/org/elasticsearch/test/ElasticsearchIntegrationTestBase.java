@@ -21,6 +21,7 @@ package org.elasticsearch.test;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.ExceptionsHelper;
@@ -47,6 +48,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.internal.InternalClient;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -68,10 +70,12 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.test.TestCluster.clusterName;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
@@ -475,6 +479,75 @@ public abstract class ElasticsearchIntegrationTestBase extends ElasticsearchTest
     }
 
     /**
+     * Waits until at least a give number of document is visible for searchers
+     *
+     * @param numDocs number of documents to wait for.
+     * @return the actual number of docs seen.
+     * @throws InterruptedException
+     */
+    public long waitForDocs(final long numDocs) throws InterruptedException {
+        return waitForDocs(numDocs, null);
+    }
+
+    /**
+     * Waits until at least a give number of document is visible for searchers
+     *
+     * @param numDocs number of documents to wait for
+     * @param indexer a {@link org.elasticsearch.test.BackgroundIndexer}. If supplied it will be first checked for documents indexed.
+     *                This saves on unneeded searches.
+     * @return the actual number of docs seen.
+     * @throws InterruptedException
+     */
+    public long waitForDocs(final long numDocs, final @Nullable BackgroundIndexer indexer) throws InterruptedException {
+        // indexing threads can wait for up to ~1m before retrying when they first try to index into a shard which is not STARTED.
+        return waitForDocs(numDocs, 90, TimeUnit.SECONDS, indexer);
+    }
+
+    /**
+     * Waits until at least a give number of document is visible for searchers
+     *
+     * @param numDocs         number of documents to wait for
+     * @param maxWaitTime     if not progress have been made during this time, fail the test
+     * @param maxWaitTimeUnit the unit in which maxWaitTime is specified
+     * @param indexer         a {@link org.elasticsearch.test.BackgroundIndexer}. If supplied it will be first checked for documents indexed.
+     *                        This saves on unneeded searches.
+     * @return the actual number of docs seen.
+     * @throws InterruptedException
+     */
+    public long waitForDocs(final long numDocs, int maxWaitTime, TimeUnit maxWaitTimeUnit, final @Nullable BackgroundIndexer indexer)
+            throws InterruptedException {
+        final long[] lastKnownCount = {-1};
+        long lastStartCount = -1;
+        Predicate<Object> testDocs = new Predicate<Object>() {
+            public boolean apply(Object o) {
+                lastKnownCount[0] = indexer.totalIndexedDocs();
+                if (lastKnownCount[0] > numDocs) {
+                    long count = client().prepareCount().setQuery(matchAllQuery()).execute().actionGet().getCount();
+                    if (count == lastKnownCount[0]) {
+                        // no progress - try to refresh for the next time
+                        client().admin().indices().prepareRefresh().get();
+                    }
+                    lastKnownCount[0] = count;
+                    logger.debug("[{}] docs visible for search. waiting for [{}]", lastKnownCount[0], numDocs);
+                } else {
+                    logger.debug("[{}] docs indexed. waiting for [{}]", lastKnownCount[0], numDocs);
+                }
+                return lastKnownCount[0] > numDocs;
+            }
+        };
+
+        while (!awaitBusy(testDocs, maxWaitTime, maxWaitTimeUnit)) {
+            if (lastStartCount == lastKnownCount[0]) {
+                // we didn't make any progress
+                fail("failed to reach " + numDocs + "docs");
+            }
+            lastStartCount = lastKnownCount[0];
+        }
+        return lastKnownCount[0];
+    }
+
+
+    /**
      * Sets the cluster's minimum master node and make sure the response is acknowledge.
      * Note: this doesn't guaranty the new settings is in effect, just that it has been received bu all nodes.
      */
@@ -678,7 +751,7 @@ public abstract class ElasticsearchIntegrationTestBase extends ElasticsearchTest
                 assertThat(actionGet.hasFailures() ? actionGet.buildFailureMessage() : "", actionGet.hasFailures(), equalTo(false));
             }
         }
-        for (CountDownLatch operation: inFlightAsyncOperations) {
+        for (CountDownLatch operation : inFlightAsyncOperations) {
             operation.await();
         }
         final List<Throwable> actualErrors = new ArrayList<>();
@@ -702,7 +775,7 @@ public abstract class ElasticsearchIntegrationTestBase extends ElasticsearchTest
     }
 
     /**
-     * Maybe refresh, optimize, or flush then always make sure there aren't too many in flight async operations. 
+     * Maybe refresh, optimize, or flush then always make sure there aren't too many in flight async operations.
      */
     private void postIndexAsyncActions(String[] indices, List<CountDownLatch> inFlightAsyncOperations) throws InterruptedException {
         if (rarely()) {
