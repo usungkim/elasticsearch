@@ -18,7 +18,7 @@ Elasticsearch is a distributed RESTful search engine built for the cloud. Featur
 ** HTTP RESTful API
 ** Native Java API.
 ** All APIs perform automatic node operation rerouting.
-* Document oriented
+* Documㅇㅀㄴㅇ넏궁루ㅜㅌ룽ㅌ뤁ㄹ웉ㅇ루
 ** No need for upfront schema definition.
 ** Schema can be defined per type for customization of the indexing process.
 * Reliable, Asynchronous Write Behind for long term persistency.
